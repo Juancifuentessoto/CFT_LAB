@@ -48,10 +48,40 @@ class LabTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code,400)
     def test_original_route(self):
         self.assertEqual(self.get('/api/basic/invoices?id=4101')['document']['owner'],'visitante')
+    def test_student_registration_resume_and_logout(self):
+        self.assertIsNone(self.get('/api/state')['student'])
+        self.post('/api/student/register', {'name': ' Alumna de prueba '})
+        state = self.get('/api/state')
+        self.assertEqual(state['student']['name'], 'Alumna de prueba')
+        token = state['student']['token']
+        choice = server.SCENARIO_ANSWERS['11']
+        flag = self.post('/api/scenario', {'level': '11', 'choice': choice})['flag']
+        self.assertTrue(self.post('/api/verify', {'level': '11', 'flag': flag})['correct'])
+        self.post('/api/student/logout', {})
+        self.assertIsNone(self.get('/api/state')['student'])
+        self.opener = build_opener(HTTPCookieProcessor(CookieJar()))
+        self.post('/api/student/resume', {'token': token})
+        self.assertTrue(self.get('/api/state')['solved']['11'])
+        self.post('/api/reset', {})
+        state = self.get('/api/state')
+        self.assertEqual(state['student']['token'], token)
+        self.assertFalse(any(state['solved'].values()))
+        self.post('/api/student/register', {'name': 'Segundo alumno'})
+        other = self.get('/api/state')
+        self.assertNotEqual(other['student']['token'], token)
+        self.assertFalse(any(other['solved'].values()))
+    def test_invalid_student(self):
+        for path,body,code in [('/api/student/register',{'name':' '},400),('/api/student/resume',{'token':'no-existe'},404)]:
+            with self.assertRaises(HTTPError) as ctx:
+                self.post(path,body)
+            self.assertEqual(ctx.exception.code,code)
     def test_frontend(self):
         with self.opener.open(self.url+'/',timeout=3) as r:
             html=r.read().decode()
         self.assertIn('id="cards"',html)
+        self.assertIn('id="student-area" hidden',html)
+        self.assertIn('id="register-form"',html)
+        self.assertIn('id="resume-form"',html)
         with self.opener.open(self.url+'/app.js',timeout=3) as r:
             js=r.read().decode()
         self.assertIn('renderPortal',js)

@@ -44,12 +44,13 @@ VIRTUAL_FILES = {
 }
 
 sessions: dict[str, dict] = {}
+student_tokens: dict[str, str] = {}
 requests_db: dict[str, dict] = {}
 lock = threading.RLock()
 
 
 def new_session():
-    return {'username': None, 'role': 'guest', 'solved': {level: False for level in LEVELS}}
+    return {'username': None, 'role': 'guest', 'student': None, 'solved': {level: False for level in LEVELS}}
 
 
 def b64url(data: bytes) -> str:
@@ -127,6 +128,9 @@ class LabHandler(BaseHTTPRequestHandler):
                 self._set_cookie = None
             return sid, sessions[sid]
 
+    def _use_session(self, sid):
+        self._set_cookie = f'lab_session={sid}; HttpOnly; SameSite=Lax; Path=/'
+
     def _headers(self, status=200, content_type='application/json; charset=utf-8', length=0):
         self.send_response(status)
         self.send_header('Content-Type', content_type)
@@ -174,7 +178,7 @@ class LabHandler(BaseHTTPRequestHandler):
             self._json({'status': 'ok', 'challenges': len(LEVELS)})
             return
         if path == '/api/state':
-            self._json({'player': 'visitante', 'medium_user': session['username'], 'medium_role': session['role'], 'solved': session['solved']})
+            self._json({'player': 'visitante', 'student': session['student'], 'medium_user': session['username'], 'medium_role': session['role'], 'solved': session['solved']})
             return
 
         # 01: IDOR (no comprueba propietario del recurso).
@@ -292,6 +296,44 @@ class LabHandler(BaseHTTPRequestHandler):
             self._json({'error': 'Envía un objeto JSON válido (máximo 8 KiB)'}, 400)
             return
 
+        if path == '/api/student/register':
+            name = body.get('name')
+            if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100 or any(ord(c) < 32 for c in name):
+                self._json({'error': 'Introduce un nombre válido de 1 a 100 caracteres.'}, 400)
+                return
+            with lock:
+                new_sid = secrets.token_urlsafe(24)
+                token = secrets.token_urlsafe(24)
+                record = new_session()
+                record['student'] = {'name': name.strip(), 'token': token}
+                sessions[new_sid] = record
+                student_tokens[token] = new_sid
+                self._use_session(new_sid)
+            self._json({'message': 'Alumno registrado.'}, 201)
+            return
+
+        if path == '/api/student/resume':
+            token = body.get('token')
+            if not isinstance(token, str) or not token or len(token) > 100:
+                self._json({'error': 'Introduce un token válido.'}, 400)
+                return
+            with lock:
+                target = student_tokens.get(token.strip())
+                if not target or target not in sessions:
+                    self._json({'error': 'Token no encontrado o caducado al reiniciar el laboratorio.'}, 404)
+                    return
+                self._use_session(target)
+            self._json({'message': 'Sesión recuperada.'})
+            return
+
+        if path == '/api/student/logout':
+            with lock:
+                new_sid = secrets.token_urlsafe(24)
+                sessions[new_sid] = new_session()
+                self._use_session(new_sid)
+            self._json({'message': 'Sesión cerrada. Puedes retomarla con tu token.'})
+            return
+
         if path == '/api/scenario':
             level, choice = body.get('level'), body.get('choice')
             if not isinstance(level, str) or level not in SCENARIO_ANSWERS or type(choice) is not int or not 0 <= choice <= 2:
@@ -317,7 +359,9 @@ class LabHandler(BaseHTTPRequestHandler):
 
         if path == '/api/reset':
             with lock:
-                sessions[sid] = new_session()
+                replacement = new_session()
+                replacement['student'] = session['student']
+                sessions[sid] = replacement
                 for req_id in [k for k, request in requests_db.items() if request['owner_sid'] == sid]:
                     del requests_db[req_id]
             self._json({'message': 'Progreso y solicitudes reiniciados para esta sesión'})

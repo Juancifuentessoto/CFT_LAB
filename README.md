@@ -1,4 +1,4 @@
-# CFT_LAB — hacking ético y ciberdefensa con Docker
+# CTF_LAB — hacking ético y ciberdefensa con Docker
 
 Aplicación web **deliberadamente vulnerable**, en español, para practicar interceptación y edición de tráfico con **Burp Suite**. Cada ejercicio tiene una flag independiente, dos pistas y verificación de progreso (0/54 incluyendo las simulaciones). Se ejecuta de forma local, sin bases de datos externas y sin dependencias Python adicionales.
 
@@ -104,8 +104,12 @@ En este modo el servidor escucha en `127.0.0.1:8000` por defecto. La imagen Dock
 
 El portal agrupa **54 laboratorios** en nueve módulos: Hacking de redes; Aplicaciones web; Credenciales y accesos; Criptografía; Ingeniería social; Reconocimiento y OSINT; Malware y análisis forense; Desafíos integradores; Blue Team y ciberdefensa. Los 10 retos HTTP originales conservan sus rutas y flags, y muestran una guía de corrección y verificación. Los 44 nuevos son **simulaciones guiadas**, no ataques ejecutables: cada uno presenta teoría, herramienta de referencia, evidencia ficticia, opciones de remediación y verificación. El servidor emite una flag tras una decisión correcta y el validador registra el progreso en la sesión. No hay escaneo externo, envío de correos, generación de tráfico de ataque ni ejecución de malware.
 
-La interfaz usa un tema oscuro, tarjetas, filtros por módulo y un indicador de progreso. La sesión es local y en memoria; no hay cuentas nominativas ni panel docente multiusuario. Las herramientas indicadas no están instaladas en el contenedor. Las guías de defensa son educativas: no modifican el firewall, la red o el código del anfitrión.
+La interfaz usa un tema oscuro, tarjetas, filtros por módulo y un indicador de progreso. La pantalla de bienvenida solicita el nombre o alias del alumno y genera un token aleatorio individual para recuperar su progreso desde otro navegador conectado al mismo servidor. El botón Salir conserva el progreso; Reiniciar mi progreso borra los ejercicios resueltos sin cambiar la identidad ni el token. La sesión es local y en memoria: nombres, tokens y progreso se pierden si se reinicia el servidor. No hay panel docente, autenticación institucional ni flags individuales (las flags siguen siendo comunes al arranque del laboratorio). La identificación controla la navegación de la interfaz; los endpoints de práctica originales permanecen accesibles para Burp. Las herramientas indicadas no están instaladas en el contenedor. Las guías de defensa son educativas: no modifican el firewall, la red o el código del anfitrión.
 
 ### Comprobación rápida
 
 Tras iniciar el servidor, visita /health y comprueba que challenges es 54. Abre el portal, verifica los nueve filtros, entra en el reto 01 y confirma que el endpoint original responde; abre un escenario nuevo, prueba una respuesta incorrecta y otra correcta, valida la flag y comprueba que el progreso aumenta. Reinicia el progreso y comprueba que vuelve a cero.
+
+### Identificación de alumnos
+
+Abre el portal en un navegador nuevo: introduce nombre o alias y pulsa Comenzar. Guarda el token mostrado en el portal. Pulsa Salir o usa otro navegador del mismo servidor, introduce el token en Retomar y comprueba que se conservan los retos resueltos. No compartas el token. No utilices información personal sensible ni expongas el servidor deliberadamente vulnerable a Internet.

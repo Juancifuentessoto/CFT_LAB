@@ -70,6 +70,7 @@
   curriculum.scenarios.forEach(s=>levels.push({...s,description:s.theory,category:curriculum.groups[s.group],objective:'Analiza la evidencia ficticia y selecciona la remediación correcta.',kind:'Simulación guiada',fields:[],actions:[],hints:['Revisa qué propiedad de seguridad se pierde.','Busca una corrección de la causa, no solo del síntoma.','Comprueba que el control preserve el uso legítimo.']}));
   const $ = id => document.getElementById(id);
   let solvedState = {};
+  let student = null;
   let groupFilter = 'ALL';
   function renderPortal(){
     const selected=levels.filter(l=>groupFilter==='ALL'||l.group===groupFilter);
@@ -81,8 +82,8 @@
     $('all-groups').setAttribute('aria-pressed',String(groupFilter==='ALL'));
     $('portal-title').textContent=groupFilter==='ALL'?'Todos los laboratorios':curriculum.groups[groupFilter];
   }
-  function openPortal(){ $('portal').hidden=false;$('detail').hidden=true;renderPortal();window.scrollTo(0,0); }
-  function openLab(id){$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);window.scrollTo(0,0); }
+  function openPortal(){ if(!student){$('welcome').hidden=false;$('student-name').focus();return;} $('portal').hidden=false;$('detail').hidden=true;renderPortal();window.scrollTo(0,0); }
+  function openLab(id){if(!student)return;$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);window.scrollTo(0,0); }
   function defense(l){return `<section class="box defense"><h3>Blue Team · Corrección y protección</h3><p><strong>Remediación:</strong> ${l.fix}</p><p><strong>Verificación:</strong> ${l.verify}</p><p>Prioriza corregir la causa; un firewall o WAF es una capa adicional cuando corresponde.</p></section>`;}
   function renderScenario(l){
     const tier=l.tier==='Básico'?'easy':l.tier==='Medio'?'medium':'hard';
@@ -113,7 +114,21 @@
   async function refresh() {
     try {
       const response = await fetch('/api/state',{cache:'no-store'});
+      if(!response.ok) throw new Error('No se pudo consultar la sesión.');
       const data = await response.json();
+      const previous = student;
+      student = data.student || null;
+      $('initial-status').hidden=true;
+      $('welcome').hidden=!!student;
+      $('student-area').hidden=!student;
+      $('identify').hidden=!!student;
+      $('nav-portal').hidden=!student;
+      $('logout').hidden=!student;
+      $('student-name-header').hidden=!student;
+      $('student-name-header').textContent=student? '👤 '+student.name : '';
+      $('student-token').textContent=student?student.token:'';
+      if(!student){$('portal').hidden=true;$('detail').hidden=true;return;}
+      if(!previous){$('portal').hidden=false;$('detail').hidden=true;}
       const solved = data.solved || {};
       solvedState = solved;
       const count = levels.filter(l => solved[l.id]).length;
@@ -124,7 +139,9 @@
         const check = $('check-' + l.id);
         if (check) check.textContent = solved[l.id] ? '✓' : '';
       });
-    } catch (_) { /* Errores visibles al intentar una petición */ }
+    } catch (_) {
+      if(!student){$('initial-status').hidden=false;$('initial-status').textContent='No se pudo conectar con el servidor. Comprueba Docker y recarga la página.';}
+    }
   }
   function selectLevel(id) {
     current = levels.find(l => l.id === id) || levels[0];
@@ -213,7 +230,37 @@
   $('all-groups').addEventListener('click',()=>{groupFilter='ALL';renderPortal();});
   $('cards').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openLab(b.dataset.open);});
   $('back-portal').addEventListener('click',openPortal);
-  $('brand-home').addEventListener('click',openPortal);
+  $('brand-home').addEventListener('click',()=>{if(student)openPortal();else if(!$('welcome').hidden)$('student-name').focus();});
+  $('nav-portal').addEventListener('click',openPortal);
+  $('identify').addEventListener('click',()=> $('student-name').focus());
+  $('guide-link').addEventListener('click',()=>{$('guia').hidden=false;});
+  async function identityRequest(path, body){
+    const response=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'No se pudo completar la solicitud.');
+    return data;
+  }
+  function identityForm(formId,statusId,path,body){
+    $(formId).addEventListener('submit',async e=>{
+      e.preventDefault();
+      const button=$(formId).querySelector('button[type="submit"]');
+      button.disabled=true;$(statusId).textContent='';
+      try{await identityRequest(path,body());window.location.reload();}
+      catch(error){$(statusId).textContent=error.message;button.disabled=false;}
+    });
+  }
+  identityForm('register-form','register-status','/api/student/register',()=>({name:$('student-name').value.trim()}));
+  identityForm('resume-form','resume-status','/api/student/resume',()=>({token:$('resume-token').value.trim()}));
+  $('logout').addEventListener('click',async()=>{
+    $('logout').disabled=true;
+    try{await identityRequest('/api/student/logout',{});window.location.reload();}
+    catch(error){$('logout').disabled=false;window.alert(error.message);}
+  });
+  $('copy-token').addEventListener('click',async()=>{
+    if(!student)return;
+    try{await navigator.clipboard.writeText(student.token);$('copy-status').textContent='Token copiado.';}
+    catch(_){$('copy-status').textContent='Selecciona el token y cópialo manualmente.';}
+  });
   $('reset-portal').addEventListener('click',()=>$('reset').click());
   $('challenge-content').addEventListener('click', e=>{
     const button = e.target.closest('button[data-action]');
@@ -232,6 +279,5 @@
     const {response}=await send('/api/reset','POST',{});
     if(response?.ok){activeRequest=null;activeToken=null;solvedState={};selectLevel(current.id);renderPortal();refresh();}
   });
-  renderPortal();
   refresh();
 })();
