@@ -25,10 +25,12 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent
 HOST = os.getenv('LAB_HOST', '127.0.0.1')
 PORT = int(os.getenv('LAB_PORT', '8000'))
-LEVELS = tuple(f'{number:02d}' for number in range(1, 11))
+LEVELS = tuple(f'{number:02d}' for number in range(1, 55))
 # Las flags son aleatorias por arranque: no se pueden leer del código fuente.
 FLAGS = {level: f'FLAG{{LAB_{level}_{secrets.token_hex(6).upper()}}}' for level in LEVELS}
 SIGNING_KEY = secrets.token_bytes(32)
+# Respuestas de ejercicios de decisión; no se incluyen en app.js.
+SCENARIO_ANSWERS = {"11":0,"12":1,"13":2,"14":0,"15":1,"16":2,"17":0,"18":1,"19":2,"20":0,"21":1,"22":2,"23":0,"24":1,"25":2,"26":0,"27":1,"28":2,"29":0,"30":1,"31":2,"32":0,"33":1,"34":2,"35":0,"36":1,"37":2,"38":0,"39":1,"40":2,"41":0,"42":1,"43":2,"44":0,"45":1,"46":2,"47":0,"48":1,"49":2,"50":0,"51":1,"52":2,"53":0,"54":1}
 
 INVOICES = {
     '4101': {'id': 4101, 'owner': 'visitante', 'title': 'Recibo de laboratorio', 'total': 12990, 'detail': 'Documento público de demostración.'},
@@ -290,6 +292,17 @@ class LabHandler(BaseHTTPRequestHandler):
             self._json({'error': 'Envía un objeto JSON válido (máximo 8 KiB)'}, 400)
             return
 
+        if path == '/api/scenario':
+            level, choice = body.get('level'), body.get('choice')
+            if not isinstance(level, str) or level not in SCENARIO_ANSWERS or type(choice) is not int or not 0 <= choice <= 2:
+                self._json({'error': 'Escenario u opción inválida'}, 400)
+                return
+            if choice == SCENARIO_ANSWERS[level]:
+                self._json({'correct': True, 'message': 'Decisión correcta. Copia la flag al validador.', 'flag': FLAGS[level]})
+            else:
+                self._json({'correct': False, 'message': 'Revisa la evidencia y la guía de remediación.'})
+            return
+
         if path == '/api/verify':
             level, candidate = body.get('level', ''), body.get('flag', '')
             if not isinstance(level, str) or level not in FLAGS or not isinstance(candidate, str):
@@ -418,7 +431,7 @@ class LabHandler(BaseHTTPRequestHandler):
 
 def main():
     httpd = ThreadingHTTPServer((HOST, PORT), LabHandler)
-    print(f'Burp Suite CTF — http://{HOST}:{PORT} (10 retos)', flush=True)
+    print(f'Burp Suite CTF — http://{HOST}:{PORT} (54 laboratorios: 10 HTTP y 44 simulaciones)', flush=True)
     print('PELIGRO: servidor intencionalmente vulnerable; solo para localhost.', flush=True)
     try:
         httpd.serve_forever()
