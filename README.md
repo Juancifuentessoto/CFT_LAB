@@ -129,3 +129,7 @@ La bienvenida utiliza una vista previa 3D animada de los nueve distritos, con un
 ### Rangos académicos automáticos
 
 El servidor calcula los seis rangos a partir de misiones distintas resueltas (0, 5, 15, 27, 42 y 54). El selector cambia únicamente el icono cosmético; ningún campo de perfil permite asignarse rangos. Los rangos futuros se muestran bloqueados, los anteriores obtenidos y el actual destacado. Repetir una flag no suma otra misión; reiniciar el progreso devuelve a Explorador. Los datos siguen en memoria como antes.
+
+### Dashboard compacto
+
+La ciudad 3D y el panel académico tienen alturas independientes. El resumen superior muestra misiones, distritos completados, rango y logros. En el panel lateral las pestañas Progreso, Rangos y Logros alternan el contenido; el progreso de cada distrito se representa con un anillo D3.js seleccionable (texto alternativo si D3 no está disponible). Avatar, sonido y token de recuperación se encuentran en el diálogo Perfil, accesible desde el encabezado o el engranaje. El rango sigue siendo calculado por el servidor y no se puede elegir. Los 54 retos y los controles de ciudad permanecen intactos.

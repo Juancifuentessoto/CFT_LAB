@@ -125,6 +125,7 @@
       $('student-area').hidden=!student;
       $('identify').hidden=!!student;
       $('nav-portal').hidden=!student;
+      $('nav-profile').hidden=!student;
       $('logout').hidden=!student;
       $('student-name-header').hidden=!student;
       $('student-name-header').textContent=student? '👤 '+student.name : '';
@@ -281,7 +282,7 @@
   $('reset').addEventListener('click',async()=>{
     if(!window.confirm('¿Borrar el progreso y las solicitudes de esta sesión?')) return;
     const {response}=await send('/api/reset','POST',{});
-    if(response?.ok){activeRequest=null;activeToken=null;solvedState={};selectLevel(current.id);renderPortal();refresh();}
+    if(response?.ok){activeRequest=null;activeToken=null;selectLevel(current.id);await refresh();}
   });
   refresh();
 })();

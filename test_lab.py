@@ -132,6 +132,15 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="gateway-return"',html)
         self.assertIn('id="city-viewport"',html)
         self.assertIn('id="progress-chart"',html)
+        for item in ('dashboard-tabs','tab-progress','tab-ranks','tab-achievements','panel-progress','panel-ranks','panel-achievements','profile-dialog','profile-settings','nav-profile','district-count','achievement-count'):
+            self.assertIn('id="'+item+'"',html)
+        self.assertNotIn('class="city-panel chart-panel"',html)
+        dialog = html.split('<dialog id="profile-dialog"',1)[1].split('</dialog>',1)[0]
+        self.assertIn('id="avatar-select"',dialog)
+        self.assertIn('id="sound-toggle"',dialog)
+        self.assertIn('id="student-token"',dialog)
+        self.assertIn('d3.arc()',city_js)
+        self.assertIn('activateDashboardTab',city_js)
         for asset in ('/city.js','/city.css'):
             with self.opener.open(self.url+asset,timeout=3) as r:
                 self.assertEqual(r.status,200)

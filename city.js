@@ -15,6 +15,28 @@
   const avatars={explorer:'🧭',shield:'🛡️',analyst:'🔍',engineer:'⚙️',pilot:'🚀',robot:'🤖'};
   const rankIcons=['🧭','⌨️','🔎','🛡️','🏗️','👑'];
   let lastRank=null,rankNoticeTimer=null;
+  const dashboardTabs=['progress','ranks','achievements'];
+  function activateDashboardTab(name,focus=false){
+    if(!dashboardTabs.includes(name))return;
+    dashboardTabs.forEach(key=>{const button=$('tab-'+key),active=key===name;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;$('panel-'+key).hidden=!active;});
+    if(focus)$('tab-'+name).focus();
+  }
+  dashboardTabs.forEach(name=>{$('tab-'+name).addEventListener('click',()=>activateDashboardTab(name));});
+  $('dashboard-tabs').addEventListener('keydown',e=>{
+    const i=dashboardTabs.findIndex(name=>$('tab-'+name)===e.target);if(i<0)return;
+    let next;
+    if(e.key==='ArrowRight')next=(i+1)%dashboardTabs.length;
+    else if(e.key==='ArrowLeft')next=(i+dashboardTabs.length-1)%dashboardTabs.length;
+    else if(e.key==='Home')next=0;else if(e.key==='End')next=dashboardTabs.length-1;else return;
+    e.preventDefault();activateDashboardTab(dashboardTabs[next],true);
+  });
+  const profileDialog=$('profile-dialog');let profileTrigger=null;
+  function openProfile(e){if(!model?.student||profileDialog.open)return;profileTrigger=e.currentTarget;profileDialog.showModal();$('profile-close').focus();}
+  $('profile-settings').addEventListener('click',openProfile);
+  $('nav-profile').addEventListener('click',openProfile);
+  $('profile-close').addEventListener('click',()=>profileDialog.close());
+  $('profile-done').addEventListener('click',()=>profileDialog.close());
+  profileDialog.addEventListener('close',()=>{if(profileTrigger?.getClientRects().length)profileTrigger.focus();profileTrigger=null;});
   const read=(k,f)=>{try{return localStorage.getItem(k)??f}catch{return f}};
   const save=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
   const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -62,6 +84,7 @@
     if(progress){
       const rank=progress.current,next=progress.next;
       $('rank-label').textContent=rank.name;
+      $('summary-rank').textContent=rank.name;
       $('next-rank').textContent=next?(next.threshold-progress.completed)+' para '+next.name:'Rango máximo alcanzado';
       const span=next?next.threshold-rank.threshold:1;
       $('rank-fill').style.width=(next?Math.min(100,Math.max(0,(progress.completed-rank.threshold)/span*100)):100)+'%';
@@ -91,6 +114,8 @@
     $('progress-percent').textContent=Math.round(done/Math.max(total,1)*100)+'%';
     const all=model.groups.filter(g=>g.done===g.total&&g.total>0);
     const feats=[['Primera flag',done>=1],['Cinco misiones',done>=5],['Distrito conquistado',all.length>0],['Defensor de la ciudad',all.some(g=>g.key==='DEF')],['Media ciudad',done>=27],['Ciudad asegurada',done===total&&total>0]];
+    $('district-count').textContent=all.length+' / '+model.groups.length;
+    $('achievement-count').textContent=feats.filter(([,earned])=>earned).length+' / '+feats.length;
     $('achievements').replaceChildren(...feats.map(([name,earned])=>{const el=document.createElement('div');el.className='achievement'+(earned?' earned':'');el.textContent=(earned?'🏅 ':'🔒 ')+name+(earned?' · obtenido':' · pendiente');return el;}));
   }
   $('avatar-select').addEventListener('change',async()=>{
@@ -103,18 +128,26 @@
   });
   function drawProgress(){
     const host=$('progress-chart');host.replaceChildren();if(!model)return;
-    const groups=model.groups;
-    if(!window.d3){const fallback=document.createElement('div');fallback.className='chart-fallback';groups.forEach(g=>{const b=document.createElement('button');b.className='btn secondary';b.textContent=g.name+' · '+g.done+'/'+g.total;b.onclick=()=>select(g.key);fallback.append(b)});host.append(fallback);return;}
-    const d3=window.d3,w=760,h=groups.length*30+22;
-    const svg=d3.select(host).append('svg').attr('viewBox','0 0 '+w+' '+h).attr('role','group').attr('aria-label','Avance real por distrito');
-    const x=d3.scaleLinear().domain([0,1]).range([0,380]);
-    const y=d3.scaleBand().domain(groups.map(g=>g.key)).range([8,h-8]).padding(.30);
-    const rows=svg.selectAll('g').data(groups).join('g').attr('transform',g=>'translate(0,'+y(g.key)+')').attr('role','button').attr('tabindex',0).attr('aria-label',g=>g.name+': '+g.done+' de '+g.total+' resueltos').on('click',(_,g)=>select(g.key)).on('keydown',(e,g)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(g.key);}});
-    rows.append('rect').attr('width',w).attr('height',y.bandwidth()).attr('fill','transparent');
-    rows.append('text').attr('x',8).attr('y',y.bandwidth()/2).attr('dominant-baseline','middle').attr('font-size',13).text(g=>districts[g.key].short);
-    rows.append('rect').attr('x',175).attr('width',380).attr('height',y.bandwidth()).attr('rx',5).attr('fill',color('--surface2'));
-    rows.append('rect').attr('x',175).attr('width',g=>x(g.done/Math.max(1,g.total))).attr('height',y.bandwidth()).attr('rx',5).attr('fill',g=>g.key==='DEF'?color('--teal'):color('--accent'));
-    rows.append('text').attr('x',575).attr('y',y.bandwidth()/2).attr('dominant-baseline','middle').attr('font-size',13).text(g=>g.done+' / '+g.total+' · '+Math.round(g.done/Math.max(1,g.total)*100)+'%');
+    const d3=window.d3;
+    for(const g of model.groups){
+      const percent=Math.round(g.done/Math.max(1,g.total)*100);
+      const button=document.createElement('button');button.type='button';button.className='district-ring';
+      button.setAttribute('aria-label',g.name+': '+g.done+' de '+g.total+' misiones, '+percent+'%. Explorar distrito.');
+      button.setAttribute('aria-pressed',String(model.selected===g.key));button.title=g.name;button.addEventListener('click',()=>select(g.key));
+      if(d3){
+        const svg=d3.select(button).append('svg').attr('viewBox','0 0 64 64').attr('aria-hidden','true');
+        const arc=d3.arc().innerRadius(23).outerRadius(28).startAngle(0);
+        const ring=svg.append('g').attr('transform','translate(32,32)');
+        ring.append('path').attr('d',arc({endAngle:2*Math.PI})).attr('fill',color('--surface2'));
+        if(g.done>0)ring.append('path').attr('d',arc({endAngle:Math.min(1,g.done/Math.max(1,g.total))*2*Math.PI})).attr('fill',g.key==='DEF'?color('--teal'):color('--accent'));
+        ring.append('text').attr('text-anchor','middle').attr('dominant-baseline','central').attr('font-size',14).text(percent+'%');
+      }else{
+        const fallback=document.createElement('span');fallback.className='ring-fallback';fallback.textContent=percent+'%';button.append(fallback);
+      }
+      const name=document.createElement('strong');name.textContent=districts[g.key].short;
+      const count=document.createElement('small');count.textContent=g.done+'/'+g.total;
+      button.append(name,count);host.append(button);
+    }
   }
   const templates={
     NET:['Clientes','Control de red','Servicio','Tráfico / paquetes','Firewall, autenticación o cifrado según el caso'],
