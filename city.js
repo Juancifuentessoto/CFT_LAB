@@ -163,14 +163,15 @@
   function drawTopology(){
     if(!lab)return;
     const host=$('topology-chart');host.replaceChildren();
-    const t=templates[lab.group]||templates.CTF;
+    const base=templates[lab.group]||templates.CTF;
+    const t=[...(lab.nodes||base.slice(0,3)),...base.slice(3)];
     $('topology-title').textContent=lab.title;
     $('topology-vulnerable').setAttribute('aria-pressed',String(!protectedMode));
     $('topology-protected').setAttribute('aria-pressed',String(protectedMode));
-    const note=protectedMode?'Corrección propuesta: '+lab.fix:'Situación vulnerable: '+lab.description;
+    const note=protectedMode&&lab.report?'Corrección propuesta: '+lab.report.fix:'Situación vulnerable: '+lab.description;
     $('topology-note').textContent=note+' Modelo conceptual, no medición ni prueba real.';
     if(!window.d3){host.textContent=t[0]+' → '+t[1]+' → '+t[2];return;}
-    const d3=window.d3,nodes=[{x:110,label:t[0],info:t[3]},{x:380,label:t[1],info:protectedMode?t[4]:'Control insuficiente en este escenario'},{x:650,label:t[2],info:protectedMode?'Activo tras la corrección propuesta':'Activo potencialmente afectado'}];
+    const d3=window.d3,nodes=[{x:110,label:t[0],info:t[3]},{x:380,label:t[1],info:protectedMode&&lab.report?lab.report.implementation:'Control insuficiente en este escenario'},{x:650,label:t[2],info:protectedMode?'Activo tras la corrección propuesta':'Activo potencialmente afectado'}];
     const svg=d3.select(host).append('svg').attr('viewBox','0 0 760 175').attr('role','group').attr('aria-label','Flujo conceptual del laboratorio');
     const edge=protectedMode?color('--teal'):color('--error');
     svg.selectAll('line').data([[nodes[0],nodes[1]],[nodes[1],nodes[2]]]).join('line').attr('x1',d=>d[0].x+88).attr('x2',d=>d[1].x-88).attr('y1',78).attr('y2',78).attr('stroke',edge).attr('stroke-width',3).attr('stroke-dasharray',protectedMode?'0':'6 4');
@@ -182,8 +183,9 @@
     svg.append('text').attr('x',380).attr('y',145).attr('text-anchor','middle').attr('font-size',12).text(protectedMode?'Flujo protegido en el modelo conceptual':'Flujo vulnerable en el modelo conceptual');
   }
   $('topology-vulnerable').onclick=()=>{protectedMode=false;drawTopology()};
-  $('topology-protected').onclick=()=>{protectedMode=true;drawTopology()};
-  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;drawTopology();play()});
+  $('topology-protected').onclick=()=>{if(lab?.report){protectedMode=true;drawTopology()}};
+  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;$('topology-protected').disabled=true;$('topology-protected').textContent='🔒 Después de corregir';drawTopology();play()});
+  document.addEventListener('city:defense',e=>{if(!lab)return;lab.report=e.detail;protectedMode=false;$('topology-protected').disabled=!lab.report;$('topology-protected').textContent=lab.report?'Después de corregir':'🔒 Después de corregir';drawTopology();});
   async function createCity(){
     if(loading||sceneApi)return;loading=true;
     const host=$('city-viewport'),fallback=$('city-fallback');

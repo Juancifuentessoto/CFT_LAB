@@ -12,7 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LAB_PORT=8000
 
 WORKDIR /app
-COPY --chown=10001:10001 server.py index.html app.js city.js city.css ./
+COPY --chown=10001:10001 server.py index.html app.js city.js city.css remediation.json ./
 COPY --from=frontend --chown=10001:10001 /build/vendor ./vendor
 
 USER 10001:10001

@@ -112,6 +112,33 @@ class LabTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as ctx:
             self.post('/api/student/avatar', {'avatar': 'invalid'})
         self.assertEqual(ctx.exception.code, 400)
+    def test_remediation_unlock(self):
+        self.post('/api/student/register', {'name': 'Remediación'})
+        self.assertEqual(set(server.REMEDIATION), set(server.LEVELS))
+        for level in server.LEVELS:
+            with self.assertRaises(HTTPError) as ctx:
+                self.get('/api/remediation?level=' + level)
+            self.assertEqual(ctx.exception.code, 403)
+            self.assertTrue(self.post('/api/verify', {'level': level, 'flag': server.FLAGS[level]})['correct'])
+            report = self.get('/api/remediation?level=' + level)
+            self.assertTrue(report['implementation'])
+            self.assertGreaterEqual(len(report['verify']), 2)
+        self.post('/api/reset', {})
+        with self.assertRaises(HTTPError) as ctx:
+            self.get('/api/remediation?level=01')
+        self.assertEqual(ctx.exception.code, 403)
+        with self.assertRaises(HTTPError) as ctx:
+            self.get('/remediation.json')
+        self.assertEqual(ctx.exception.code, 404)
+
+    def test_remediation_other_student(self):
+        self.post('/api/student/register', {'name': 'Primero'})
+        self.post('/api/verify', {'level': '04', 'flag': server.FLAGS['04']})
+        self.post('/api/student/register', {'name': 'Segundo'})
+        with self.assertRaises(HTTPError) as ctx:
+            self.get('/api/remediation?level=04')
+        self.assertEqual(ctx.exception.code, 403)
+
     def test_frontend(self):
         with self.opener.open(self.url+'/',timeout=3) as r:
             html=r.read().decode()

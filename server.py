@@ -49,6 +49,11 @@ def rank_progress(solved):
         'ranks': ranks,
     }
 
+# Informes privados: no se sirven como recursos estáticos.
+REMEDIATION = json.loads((ROOT / 'remediation.json').read_text(encoding='utf-8'))
+if set(REMEDIATION) != set(LEVELS):
+    raise RuntimeError('Catálogo de remediación incompleto')
+
 # Las flags son aleatorias por arranque: no se pueden leer del código fuente.
 FLAGS = {level: f'FLAG{{LAB_{level}_{secrets.token_hex(6).upper()}}}' for level in LEVELS}
 SIGNING_KEY = secrets.token_bytes(32)
@@ -222,6 +227,19 @@ class LabHandler(BaseHTTPRequestHandler):
                 solved = dict(session['solved'])
                 profile = dict(session['student']) if session['student'] else None
             self._json({'player': 'visitante', 'student': profile, 'medium_user': session['username'], 'medium_role': session['role'], 'solved': solved, 'rank_progress': rank_progress(solved)})
+            return
+
+        if path == '/api/remediation':
+            level = query.get('level', [''])[0]
+            if level not in REMEDIATION:
+                self._json({'error': 'Misión desconocida'}, 404)
+                return
+            with lock:
+                allowed = bool(session['student']) and session['solved'].get(level) is True
+            if not allowed:
+                self._json({'error': 'Valida primero la flag de esta misión con tu perfil.'}, 403)
+                return
+            self._json(REMEDIATION[level])
             return
 
         # 01: IDOR (no comprueba propietario del recurso).
@@ -398,7 +416,7 @@ class LabHandler(BaseHTTPRequestHandler):
             if choice == SCENARIO_ANSWERS[level]:
                 self._json({'correct': True, 'message': 'Decisión correcta. Copia la flag al validador.', 'flag': FLAGS[level]})
             else:
-                self._json({'correct': False, 'message': 'Revisa la evidencia y la guía de remediación.'})
+                self._json({'correct': False, 'message': 'Revisa la evidencia y las pistas de la misión.'})
             return
 
         if path == '/api/verify':
