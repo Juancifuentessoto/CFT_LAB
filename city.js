@@ -252,12 +252,12 @@
       function applyTheme(){const light=theme==='light';ground.color.set(light?0xc0cfdd:0x223348);road.color.set(light?0x8093a5:0x101827);wall.color.set(light?0x9db2c8:0x3b526c);roof.color.set(light?0xd1dce5:0x526d88);draw();}
       function draw(){camera.position.set(Math.sin(angle)*32,24,Math.cos(angle)*32);camera.lookAt(0,1,0);renderer.render(scene,camera);}
       function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);const a=w/h,half=Math.max(11.8,17/a);camera.left=-half*a;camera.right=half*a;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();draw();}
-      function dispose(){renderer.setAnimationLoop(null);observer?.disconnect();scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();gatewayScene=null;gatewayLoading=false;fallback.hidden=false;$('gateway-motion').hidden=true;}
+      function dispose(){renderer.setAnimationLoop(null);observer?.disconnect();scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();gatewayScene=null;gatewayLoading=false;host.classList.remove('gateway-webgl-ready');fallback.removeAttribute('hidden');$('gateway-motion').hidden=true;}
       host.append(renderer.domElement);
       observer=new ResizeObserver(resize);observer.observe(host);
       gatewayScene={draw,theme:applyTheme,dispose};
       resize();applyTheme();
-      fallback.hidden=true;$('gateway-motion').hidden=false;
+      fallback.setAttribute('hidden','');host.classList.add('gateway-webgl-ready');$('gateway-motion').hidden=false;
       renderer.setAnimationLoop(t=>{
         if(gateway.hidden||document.hidden||gatewayPaused){last=null;return;}
         const dt=last===null?0:Math.min(.05,(t-last)/1000);last=t;
@@ -266,7 +266,7 @@
         draw();
       });
       renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();dispose();gatewayLoading=true;});
-    }catch(e){observer?.disconnect();if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();}gatewayScene=null;fallback.hidden=false;$('gateway-motion').hidden=true;console.warn('Cyber City acceso:',e);}
+    }catch(e){observer?.disconnect();if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();}gatewayScene=null;host.classList.remove('gateway-webgl-ready');fallback.removeAttribute('hidden');$('gateway-motion').hidden=true;console.warn('Cyber City acceso:',e);}
   }
   const gatewayObserver=new MutationObserver(()=>{if(gateway.hidden){gatewayScene?.dispose();}else createGateway();});
   gatewayObserver.observe(gateway,{attributes:true,attributeFilter:['hidden']});

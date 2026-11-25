@@ -94,6 +94,13 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="resume-form"',html)
         self.assertIn('id="gateway-scene"',html)
         self.assertIn('id="gateway-fallback"',html)
+        with self.opener.open(self.url+'/city.js',timeout=3) as r:
+            city_js=r.read().decode()
+        self.assertIn("fallback.setAttribute('hidden','')",city_js)
+        self.assertIn("fallback.removeAttribute('hidden')",city_js)
+        with self.opener.open(self.url+'/city.css',timeout=3) as r:
+            city_css=r.read().decode()
+        self.assertIn('.gateway-scene.gateway-webgl-ready > #gateway-fallback',city_css)
         self.assertIn('id="gateway-new"',html)
         self.assertIn('id="gateway-return"',html)
         self.assertIn('id="city-viewport"',html)

@@ -25,3 +25,6 @@
 :root[data-theme="light"] .city-gateway{--gate-glow:rgba(8,127,117,.09)}
 @media(max-width:850px){.gateway-layout{grid-template-columns:1fr;max-width:670px;margin:auto}.gateway-hero,.gateway-access{padding:24px}.gateway-scene{min-height:230px;flex:auto}.gateway-copy h1{font-size:clamp(2rem,7vw,3.4rem)}.gateway-access{order:-1}.gateway-hero .gateway-copy p{max-width:100%}}
 @media(max-width:450px){.city-gateway{margin:0 auto 20px}.gateway-layout{gap:14px}.gateway-hero,.gateway-access{padding:18px;border-radius:15px}.gateway-access-head h2{font-size:1.4rem}.gateway-scene{min-height:210px}.gateway-stats strong{font-size:1.3rem}}
+
+/* SVGElement does not reflect the HTML hidden property. Keep preview layers exclusive. */
+.gateway-scene > svg[hidden], .gateway-scene.gateway-webgl-ready > #gateway-fallback {display:none!important}
