@@ -161,7 +161,7 @@
     DEF:['Tráfico / evento','Control defensivo','Activo protegido','Evidencia simulada','Control específico del ejercicio']
   };
   function drawTopology(){
-    if(!lab)return;
+    if(!lab?.report)return;
     const host=$('topology-chart');host.replaceChildren();
     const base=templates[lab.group]||templates.CTF;
     const t=[...(lab.nodes||base.slice(0,3)),...base.slice(3)];
@@ -185,7 +185,7 @@
   // Additional interactive models for selected scenarios. No network operations.
   function renderMissionModel(){
     const host=$('mission-model');host.replaceChildren();host.hidden=true;
-    if(!lab||!['11','12','38','43','50','51'].includes(lab.id))return;
+    if(!lab?.report||!['11','12','38','43','50','51'].includes(lab.id))return;
     host.hidden=false;
     const add=(tag,text,parent=host)=>{const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;};
     add('h3','Simulador didáctico · '+lab.title);
@@ -219,8 +219,8 @@
   }
   $('topology-vulnerable').onclick=()=>{protectedMode=false;drawTopology()};
   $('topology-protected').onclick=()=>{if(lab?.report){protectedMode=true;drawTopology()}};
-  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;$('topology-protected').disabled=true;$('topology-protected').textContent='🔒 Después de corregir';drawTopology();renderMissionModel();play()});
-  document.addEventListener('city:defense',e=>{if(!lab)return;lab.report=e.detail;protectedMode=false;$('topology-protected').disabled=!lab.report;$('topology-protected').textContent=lab.report?'Después de corregir':'🔒 Después de corregir';drawTopology();renderMissionModel();});
+  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;$('topology-protected').disabled=true;$('topology-protected').textContent='🔒 Después de corregir';$('topology-chart').replaceChildren();$('topology-note').textContent='';renderMissionModel();play()});
+  document.addEventListener('city:defense',e=>{if(!lab)return;lab.report=e.detail;protectedMode=false;$('topology-protected').disabled=!lab.report;$('topology-protected').textContent=lab.report?'Después de corregir':'🔒 Después de corregir';if(lab.report)drawTopology();else{$('topology-chart').replaceChildren();$('topology-note').textContent='';}renderMissionModel();});
   async function createCity(){
     if(loading||sceneApi)return;loading=true;
     const host=$('city-viewport'),fallback=$('city-fallback');

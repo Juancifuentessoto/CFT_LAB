@@ -75,24 +75,26 @@
   const districtVisual={NET:'◈',WEB:'▣',AUTH:'⌁',CRYPTO:'◇',SOC:'✉',OSINT:'◎',FORENSIC:'▤',CTF:'⚑',DEF:'⬡'};
   function missionHeader(l){
     const m=l.mission;
-    return `<header class="mission-hero" data-district="${l.group}"><div><div class="eyebrow">CYBER CITY / ${curriculum.groups[l.group]} / ${l.group}-${l.id}</div><h2>${m.name}</h2><p>${l.title} · ${l.tier} · ${l.kind}</p></div><span class="mission-symbol" aria-hidden="true">${districtVisual[l.group]}</span></header><div class="mission-steps"><a href="#challenge-content">01 Briefing</a><a href="#mission-practice">02 Práctica</a><a href="#mission-validation">03 Flag</a><a href="#mission-defense">04 Defensa</a></div><section class="mission-brief"><div class="box"><h3>Briefing de misión</h3><p>${m.brief}</p><h3>Inteligencia técnica</h3><p>${m.concept}</p><p>${l.description}</p></div><div class="box"><h3>Objetivo</h3><p>${l.objective}</p><h3>Herramientas</h3><p>${l.tool}</p><p>${l.kind==='HTTP real local'?'Configura Burp para el puerto del laboratorio, genera una solicitud desde el panel y revisa HTTP history y Repeater. Usa solo localhost.':'Examina los datos ficticios del ejercicio. La herramienta se indica como referencia; no se ejecuta desde este portal.'}</p></div></section>`;
+    return `<header class="mission-hero" data-district="${l.group}"><div><div class="eyebrow">CYBER CITY / ${curriculum.groups[l.group]} / ${l.group}-${l.id}</div><h2>${m.name}</h2><p>${l.title} · ${l.tier} · ${l.kind}</p></div><span class="mission-symbol" aria-hidden="true">${districtVisual[l.group]}</span></header><section class="mission-summary"><div class="summary-brief"><h3><span aria-hidden="true">◎</span> Briefing de misión</h3><p>${m.brief}</p></div><div class="summary-right"><div><h3><span aria-hidden="true">⚑</span> Objetivo</h3><p>${l.objective}</p></div><div><h3><span aria-hidden="true">⚙</span> Herramientas</h3><p>${l.tool}</p></div></div></section>`;
   }
   function showDefenseLocked(){
     reportEpoch++;
-    $('mission-defense').innerHTML='<h2>🔒 Informe de remediación</h2><p>Valida la flag de esta misión para desbloquear la causa raíz, la corrección y las pruebas defensivas.</p>';
+    $('education-lock').hidden=false;$('education-content').hidden=true;$('education-status').textContent='';$('mission-defense').replaceChildren();$('mission-theory').replaceChildren();
     document.dispatchEvent(new CustomEvent('city:defense',{detail:null}));
   }
   async function loadDefense(){
     const id=current.id,epoch=++reportEpoch;
     if(!solvedState[id]){showDefenseLocked();return;}
     const host=$('mission-defense');
-    host.textContent='Cargando informe defensivo…';
+    $('education-status').textContent='Cargando contenido educativo…';
     try{
       const r=await fetch('/api/remediation?level='+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'});
       if(epoch!==reportEpoch||current.id!==id)return;
       if(!r.ok){showDefenseLocked();return;}
       const data=await r.json();if(epoch!==reportEpoch||current.id!==id)return;
-      host.replaceChildren();
+      $('education-lock').hidden=true;$('education-content').hidden=false;$('education-status').textContent='';
+      host.replaceChildren();const theory=$('mission-theory');theory.replaceChildren();
+      for(const [title,value] of [['Cómo funciona',current.mission.concept],['Contexto técnico',current.description],['Herramientas y alcance',current.kind==='HTTP real local'?'Usa Burp Suite en el laboratorio local para observar solicitudes y respuestas.':'Analiza exclusivamente la evidencia ficticia del laboratorio. Las herramientas son referencias educativas.']]){const h=document.createElement('h3'),p=document.createElement('p');h.textContent=title;p.textContent=value;theory.append(h,p);}
       const add=(tag,value,parent=host)=>{const el=document.createElement(tag);el.textContent=value;parent.append(el);return el;};
       add('div','BLUE TEAM / MISIÓN COMPLETADA').className='eyebrow';
       add('h2','✓ Informe de remediación desbloqueado');
@@ -102,7 +104,7 @@
       data.verify.forEach(value=>{const label=document.createElement('label');label.className='choice';const box=document.createElement('input');box.type='checkbox';label.append(box);add('span',value,label);host.append(label);});
       const link=add('a',data.referenceLabel);link.href=data.reference;link.target='_blank';link.rel='noopener noreferrer';
       document.dispatchEvent(new CustomEvent('city:defense',{detail:data}));
-    }catch(e){if(epoch===reportEpoch){host.textContent='No se pudo cargar el informe. Vuelve a abrir la misión para reintentar.';}}
+    }catch(e){if(epoch===reportEpoch){$('education-status').textContent='No se pudo cargar el informe. Vuelve a abrir la misión para reintentar.';}}
   }
   function missionNav(){
     const group=levels.filter(l=>l.group===current.group),i=group.indexOf(current);
@@ -130,24 +132,29 @@
   function openLab(id){if(!student)return;$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);document.dispatchEvent(new CustomEvent('city:lab',{detail:{id:current.id,group:current.group,title:current.mission.name,nodes:current.mission.nodes,description:current.mission.concept}}));missionNav();loadDefense();window.scrollTo(0,0); }
   function renderScenario(l){
     const tier=l.tier==='Básico'?'easy':l.tier==='Medio'?'medium':'hard';
-    $('challenge-content').innerHTML=missionHeader(l)+`<section class="box scenario" id="mission-practice"><div class="eyebrow">EVIDENCIA SINTÉTICA / ${l.group}-${l.id}</div><h3>Analiza el incidente</h3><div class="mission-evidence"><p>${l.evidence}</p></div><fieldset><legend>¿Qué decisión aplicarías?</legend>${l.options.map((option,i)=>`<label class="choice"><input type="radio" name="scenario-choice" value="${i}"> <span>${option}</span></label>`).join('')}</fieldset><button class="btn" data-action="scenario">Comprobar decisión</button><p id="scenario-feedback" role="status"></p></section>`;
+    $('challenge-content').innerHTML=`<section class="scenario" id="mission-practice"><div class="eyebrow">EVIDENCIA SINTÉTICA / ${l.group}-${l.id}</div><h2>Panel de prueba</h2><div class="mission-evidence"><p>${l.evidence}</p></div><fieldset><legend>¿Qué decisión aplicarías?</legend>${l.options.map((option,i)=>`<label class="choice"><input type="radio" name="scenario-choice" value="${i}"> <span>${option}</span></label>`).join('')}</fieldset><button class="btn" data-action="scenario">Comprobar decisión</button><p id="scenario-feedback" role="status"></p></section>`;
   }
   let current = levels[0];
   let activeRequest = null;
   let activeToken = null;
 
-  function showResponse(status, message) {
+  function showResponse(status, message, metrics='') {
     $('http-status').textContent = status;
+    $('http-metrics').textContent=metrics;
     $('response').textContent = message;
+    $('response').scrollTop=0;
+    $('response-status').textContent='';
   }
   async function api(path, options={}) {
+    const id=current.id,started=performance.now();
     try {
       const response = await fetch(path, {credentials:'same-origin',cache:'no-store',...options});
-      const data = await response.json();
-      showResponse(`HTTP ${response.status} ${response.statusText}`, JSON.stringify(data,null,2));
+      const raw=await response.text();
+      const data=JSON.parse(raw);
+      if(current.id===id)showResponse(`HTTP ${response.status} ${response.statusText}`, JSON.stringify(data,null,2),new TextEncoder().encode(raw).length+' B · '+Math.round(performance.now()-started)+' ms');
       return {response, data};
     } catch (error) {
-      showResponse('ERROR DE CONEXIÓN', `No se puede contactar el servidor. Levanta Docker con: docker compose up --build -d\n\n${error.message}`);
+      if(current.id===id)showResponse('ERROR DE CONEXIÓN', `No se puede contactar el servidor. Levanta Docker con: docker compose up --build -d\n\n${error.message}`);
       return {response:null,data:null};
     }
   }
@@ -191,6 +198,10 @@
   function selectLevel(id) {
     current = levels.find(l => l.id === id) || levels[0];
     showDefenseLocked();
+    $('mission-heading').innerHTML=missionHeader(current);
+    $('hint-count').textContent='('+current.hints.length+')';
+    document.querySelector('.mission-hints').open=false;
+    $('flag-result').classList.remove('success-text','error-text');
     document.querySelectorAll('.navbtn').forEach(btn => btn.classList.toggle('active',btn.dataset.level === id));
     const content = $('challenge-content');
     const className = current.tier === 'Básico' ? 'easy' : current.tier === 'Medio' ? 'medium' : 'hard';
@@ -202,17 +213,14 @@
       return;
     }
     // Solo se incrusta metadata estática incluida en este JavaScript, nunca respuestas del servidor.
-    content.innerHTML = missionHeader(current)+`
-      <div class="workspace" id="mission-practice"><section class="box">
-        <h3>Panel de pruebas</h3>
-        ${current.fields.map(f => `<label class="label" for="field-${f.name}">${f.label}</label><input class="field" id="field-${f.name}" value="${f.value}" autocomplete="off" spellcheck="false" ${f.readonly ? 'readonly title="Modifica este valor en Burp Repeater"' : ''}>`).join('')}
-        ${current.fields.length === 0 ? '<p>Este desafío se resuelve modificando la petición HTTP con Burp Suite.</p>' : ''}
+    content.innerHTML = `
+      <section id="mission-practice"><h2>Panel de prueba</h2><div class="practice-fields">
+        ${current.fields.map(f => `<div class="practice-field"><label class="label" for="field-${f.name}">${f.label}</label><input class="field" id="field-${f.name}" value="${f.value}" autocomplete="off" spellcheck="false" ${f.readonly ? 'readonly title="Modifica este valor en Burp Repeater"' : ''}></div>`).join('')}
+        </div>${current.fields.length === 0 ? '<p>Este desafío se resuelve modificando la petición HTTP con Burp Suite.</p>' : ''}
         <div class="buttons">${current.actions.map(([action,title],i)=>`<button class="btn ${i ? 'secondary':''}" data-action="${action}">${title}</button>`).join('')}</div>
         ${current.id === '08' ? `<p class="muted" id="request-ref">Solicitud activa: ${activeRequest || 'ninguna'}</p>`:''}
         ${current.id === '09' ? `<p class="muted" id="token-ref">Token activo: ${activeToken ? 'obtenido' : 'ninguno'}</p>`:''}
-      </section><section class="box"><h3>Briefing técnico</h3><p><span class="endpoint">${current.endpoint}</span></p>
-      <p>Herramientas: <b>Proxy → HTTP history → Repeater</b>.</p><p>Intercepta una petición y modifica sus parámetros, método, cookies, cabeceras o JSON, según el reto.</p>
-      </section></div>`;
+      </section>`;
     $('hints').innerHTML = current.hints.map((hint,i)=>`<details class="hint"><summary>Pista ${i+1}</summary><p>${hint}</p></details>`).join('');
     $('flag-input').value='';
     $('flag-result').textContent='';
@@ -307,14 +315,17 @@
     try{await navigator.clipboard.writeText(student.token);$('copy-status').textContent='Token copiado.';}
     catch(_){$('copy-status').textContent='Selecciona el token y cópialo manualmente.';}
   });
-  $('reset-portal').addEventListener('click',()=>$('reset').click());
+  $('copy-response').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('response').textContent);$('response-status').textContent='Respuesta copiada.';$('copy-response').textContent='Copiado';setTimeout(()=>$('copy-response').textContent='Copiar',1500);}catch{ $('response-status').textContent='No se pudo copiar. Selecciona el texto manualmente.';}});
+  $('expand-response').addEventListener('click',()=>{const panel=$('response').closest('.terminal');const expanded=panel.classList.toggle('expanded');$('expand-response').setAttribute('aria-pressed',String(expanded));$('expand-response').textContent=expanded?'Reducir':'Ampliar';});
   $('challenge-content').addEventListener('click', e=>{
     const button = e.target.closest('button[data-action]');
     if(button) act(button.dataset.action);
   });
   $('verify').addEventListener('click', async()=>{
     const id=current.id;
-    const {response,data}=await send('/api/verify','POST',{level:id,flag:$('flag-input').value});
+    let response,data;
+    try{response=await fetch('/api/verify',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({level:id,flag:$('flag-input').value})});data=await response.json();}
+    catch{if(current.id===id)$('flag-result').textContent='No se pudo validar la flag. Inténtalo nuevamente.';return;}
     if(!response) return;
     if(current.id!==id){if(data.correct)await refresh();return;}
     $('flag-result').textContent = data.message || data.error;
@@ -322,10 +333,10 @@
     if(data.correct){document.dispatchEvent(new CustomEvent('city:success'));await refresh();if(current.id===id)await loadDefense();}
   });
   $('flag-input').addEventListener('keydown',e=>{if(e.key==='Enter') $('verify').click();});
-  $('reset').addEventListener('click',async()=>{
+  $('reset-portal').addEventListener('click',async()=>{
     if(!window.confirm('¿Borrar el progreso y las solicitudes de esta sesión?')) return;
     const {response}=await send('/api/reset','POST',{});
-    if(response?.ok){activeRequest=null;activeToken=null;selectLevel(current.id);await refresh();if(!$('detail').hidden)loadDefense();}
+    if(response?.ok){activeRequest=null;activeToken=null;showDefenseLocked();await refresh();}
   });
   refresh();
 })();

@@ -172,6 +172,14 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="mission-model"',html)
         self.assertIn('id="mission-defense"',html)
         self.assertIn('id="mission-next"',html)
+        self.assertIn('class="mission-action-grid"',html)
+        self.assertIn('id="education-content" hidden',html)
+        self.assertIn('id="education-lock"',html)
+        self.assertIn('id="copy-response"',html)
+        detail = html.split('<section id="detail"',1)[1].split('<dialog id="profile-dialog"',1)[0]
+        self.assertNotIn('Iniciar con Docker Compose',detail)
+        self.assertNotIn('Seguridad del laboratorio',detail)
+        self.assertIn('id="hints"',detail)
         for asset in ('/city.js','/city.css'):
             with self.opener.open(self.url+asset,timeout=3) as r:
                 self.assertEqual(r.status,200)
@@ -179,6 +187,8 @@ class LabTests(unittest.TestCase):
             js=r.read().decode()
         self.assertIn('renderPortal',js)
         self.assertIn('Simulación guiada',js)
+        self.assertNotIn('Briefing técnico',js)
+        self.assertIn('mission-summary',js)
 
 if __name__=='__main__':
     unittest.main()
