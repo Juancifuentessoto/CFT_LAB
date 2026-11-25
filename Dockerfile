@@ -1,3 +1,9 @@
+FROM node:22-alpine AS frontend
+WORKDIR /build
+COPY package.json ./
+COPY scripts/vendor.cjs scripts/vendor.cjs
+RUN npm install --ignore-scripts --no-audit --no-fund && npm run vendor
+
 FROM python:3.12-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -6,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LAB_PORT=8000
 
 WORKDIR /app
-COPY --chown=10001:10001 server.py index.html app.js ./
+COPY --chown=10001:10001 server.py index.html app.js city.js city.css ./
+COPY --from=frontend --chown=10001:10001 /build/vendor ./vendor
 
 USER 10001:10001
 EXPOSE 8000

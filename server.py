@@ -167,11 +167,28 @@ class LabHandler(BaseHTTPRequestHandler):
         path = url.path
         query = parse_qs(url.query)
 
-        if path in ('/', '/index.html', '/app.js'):
-            file = 'app.js' if path == '/app.js' else 'index.html'
-            content = (ROOT / file).read_bytes()
-            mime = 'application/javascript' if file == 'app.js' else 'text/html'
-            self._headers(200, f'{mime}; charset=utf-8', len(content))
+        # Lista cerrada de recursos estáticos: nunca servir rutas arbitrarias.
+        static_files = {
+            '/': ('index.html', 'text/html'),
+            '/index.html': ('index.html', 'text/html'),
+            '/app.js': ('app.js', 'application/javascript'),
+            '/city.js': ('city.js', 'application/javascript'),
+            '/city.css': ('city.css', 'text/css'),
+            '/vendor/three.module.js': ('vendor/three.module.js', 'application/javascript'),
+            '/vendor/d3.min.js': ('vendor/d3.min.js', 'application/javascript'),
+            '/vendor/sora-700.woff2': ('vendor/sora-700.woff2', 'font/woff2'),
+            '/vendor/dm-sans-400.woff2': ('vendor/dm-sans-400.woff2', 'font/woff2'),
+            '/vendor/dm-sans-700.woff2': ('vendor/dm-sans-700.woff2', 'font/woff2'),
+            '/vendor/ibm-plex-mono-400.woff2': ('vendor/ibm-plex-mono-400.woff2', 'font/woff2'),
+        }
+        if path in static_files:
+            file, mime = static_files[path]
+            try:
+                content = (ROOT / file).read_bytes()
+            except FileNotFoundError:
+                self._json({'error': 'Recurso opcional no instalado. Ejecuta npm install y npm run vendor.'}, 404)
+                return
+            self._headers(200, mime if mime.startswith('font/') else f'{mime}; charset=utf-8', len(content))
             self.wfile.write(content)
             return
         if path == '/health':
@@ -305,7 +322,7 @@ class LabHandler(BaseHTTPRequestHandler):
                 new_sid = secrets.token_urlsafe(24)
                 token = secrets.token_urlsafe(24)
                 record = new_session()
-                record['student'] = {'name': name.strip(), 'token': token}
+                record['student'] = {'name': name.strip(), 'token': token, 'avatar': 'explorer'}
                 sessions[new_sid] = record
                 student_tokens[token] = new_sid
                 self._use_session(new_sid)
@@ -324,6 +341,19 @@ class LabHandler(BaseHTTPRequestHandler):
                     return
                 self._use_session(target)
             self._json({'message': 'Sesión recuperada.'})
+            return
+
+        if path == '/api/student/avatar':
+            avatar = body.get('avatar')
+            if not session['student']:
+                self._json({'error': 'Identifícate primero.'}, 401)
+                return
+            if not isinstance(avatar, str) or avatar not in {'explorer', 'shield', 'analyst', 'engineer', 'pilot', 'robot'}:
+                self._json({'error': 'Avatar inválido.'}, 400)
+                return
+            with lock:
+                session['student']['avatar'] = avatar
+            self._json({'avatar': avatar})
             return
 
         if path == '/api/student/logout':

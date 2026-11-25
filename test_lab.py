@@ -54,6 +54,7 @@ class LabTests(unittest.TestCase):
         state = self.get('/api/state')
         self.assertEqual(state['student']['name'], 'Alumna de prueba')
         token = state['student']['token']
+        self.post('/api/student/avatar', {'avatar': 'shield'})
         choice = server.SCENARIO_ANSWERS['11']
         flag = self.post('/api/scenario', {'level': '11', 'choice': choice})['flag']
         self.assertTrue(self.post('/api/verify', {'level': '11', 'flag': flag})['correct'])
@@ -62,6 +63,7 @@ class LabTests(unittest.TestCase):
         self.opener = build_opener(HTTPCookieProcessor(CookieJar()))
         self.post('/api/student/resume', {'token': token})
         self.assertTrue(self.get('/api/state')['solved']['11'])
+        self.assertEqual(self.get('/api/state')['student']['avatar'], 'shield')
         self.post('/api/reset', {})
         state = self.get('/api/state')
         self.assertEqual(state['student']['token'], token)
@@ -75,6 +77,14 @@ class LabTests(unittest.TestCase):
             with self.assertRaises(HTTPError) as ctx:
                 self.post(path,body)
             self.assertEqual(ctx.exception.code,code)
+    def test_avatar_requires_student(self):
+        with self.assertRaises(HTTPError) as ctx:
+            self.post('/api/student/avatar', {'avatar': 'robot'})
+        self.assertEqual(ctx.exception.code, 401)
+        self.post('/api/student/register', {'name': 'Avatar test'})
+        with self.assertRaises(HTTPError) as ctx:
+            self.post('/api/student/avatar', {'avatar': 'invalid'})
+        self.assertEqual(ctx.exception.code, 400)
     def test_frontend(self):
         with self.opener.open(self.url+'/',timeout=3) as r:
             html=r.read().decode()
@@ -82,6 +92,11 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="student-area" hidden',html)
         self.assertIn('id="register-form"',html)
         self.assertIn('id="resume-form"',html)
+        self.assertIn('id="city-viewport"',html)
+        self.assertIn('id="progress-chart"',html)
+        for asset in ('/city.js','/city.css'):
+            with self.opener.open(self.url+asset,timeout=3) as r:
+                self.assertEqual(r.status,200)
         with self.opener.open(self.url+'/app.js',timeout=3) as r:
             js=r.read().decode()
         self.assertIn('renderPortal',js)

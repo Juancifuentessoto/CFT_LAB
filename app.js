@@ -81,9 +81,10 @@
     $('cards').innerHTML=selected.map(l=>`<article class="lab-card"><div class="card-top"><code>${l.group}-${l.id}</code><span>${solvedState[l.id]?'✓ Completado':'□ Pendiente'}</span></div><h3>${l.title}</h3><div class="tags"><span class="tag ${l.tier==='Básico'?'easy':l.tier==='Medio'?'medium':'hard'}">${l.tier}</span><span class="kind">${l.kind}</span></div><p>${l.description}</p><div class="card-foot"><span>${l.hints.length} pistas disponibles</span><button class="btn" data-open="${l.id}">Entrar →</button></div></article>`).join('');
     $('all-groups').setAttribute('aria-pressed',String(groupFilter==='ALL'));
     $('portal-title').textContent=groupFilter==='ALL'?'Todos los laboratorios':curriculum.groups[groupFilter];
+    document.dispatchEvent(new CustomEvent('city:progress',{detail:{groups:Object.entries(curriculum.groups).map(([key,name])=>({key,name,total:levels.filter(l=>l.group===key).length,done:levels.filter(l=>l.group===key&&solvedState[l.id]).length})),selected:groupFilter,student:student?{name:student.name,avatar:student.avatar||'explorer'}:null}}));
   }
   function openPortal(){ if(!student){$('welcome').hidden=false;$('student-name').focus();return;} $('portal').hidden=false;$('detail').hidden=true;renderPortal();window.scrollTo(0,0); }
-  function openLab(id){if(!student)return;$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);window.scrollTo(0,0); }
+  function openLab(id){if(!student)return;$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);document.dispatchEvent(new CustomEvent('city:lab',{detail:{id:current.id,group:current.group,title:current.title,fix:current.fix,description:current.description}}));window.scrollTo(0,0); }
   function defense(l){return `<section class="box defense"><h3>Blue Team · Corrección y protección</h3><p><strong>Remediación:</strong> ${l.fix}</p><p><strong>Verificación:</strong> ${l.verify}</p><p>Prioriza corregir la causa; un firewall o WAF es una capa adicional cuando corresponde.</p></section>`;}
   function renderScenario(l){
     const tier=l.tier==='Básico'?'easy':l.tier==='Medio'?'medium':'hard';
@@ -228,6 +229,7 @@
   }
   $('modules').addEventListener('click',e=>{const b=e.target.closest('[data-group]');if(b){groupFilter=b.dataset.group;renderPortal();}});
   $('all-groups').addEventListener('click',()=>{groupFilter='ALL';renderPortal();});
+  document.addEventListener('city:select',e=>{if(student&&Object.hasOwn(curriculum.groups,e.detail)){groupFilter=e.detail;renderPortal();$('portal-title').scrollIntoView({block:'start',behavior:'instant'});}});
   $('cards').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openLab(b.dataset.open);});
   $('back-portal').addEventListener('click',openPortal);
   $('brand-home').addEventListener('click',()=>{if(student)openPortal();else if(!$('welcome').hidden)$('student-name').focus();});
@@ -270,8 +272,8 @@
     const {response,data}=await send('/api/verify','POST',{level:current.id,flag:$('flag-input').value});
     if(!response) return;
     $('flag-result').textContent = data.message || data.error;
-    $('flag-result').style.color = data.correct ? '#5eead4' : '#ff9da9';
-    if(data.correct) refresh();
+    $('flag-result').classList.toggle('success-text',!!data.correct); $('flag-result').classList.toggle('error-text',!data.correct);
+    if(data.correct){document.dispatchEvent(new CustomEvent('city:success'));refresh();}
   });
   $('flag-input').addEventListener('keydown',e=>{if(e.key==='Enter') $('verify').click();});
   $('reset').addEventListener('click',async()=>{

@@ -113,3 +113,11 @@ Tras iniciar el servidor, visita /health y comprueba que challenges es 54. Abre 
 ### Identificación de alumnos
 
 Abre el portal en un navegador nuevo: introduce nombre o alias y pulsa Comenzar. Guarda el token mostrado en el portal. Pulsa Salir o usa otro navegador del mismo servidor, introduce el token en Retomar y comprueba que se conservan los retos resueltos. No compartas el token. No utilices información personal sensible ni expongas el servidor deliberadamente vulnerable a Internet.
+
+## Cyber City 2.0
+
+El portal incorpora una ciudad 3D Three.js (nueve distritos, selección por edificios, giro y zoom), gráficos D3.js con el progreso real y topologías conceptuales interactivas antes/después de la corrección. Las tarjetas permanecen disponibles si WebGL falla. Puedes pausar el movimiento y cambiar entre tema claro y oscuro. Los sonidos sintetizados son opcionales y están desactivados inicialmente. El avatar se guarda con el alumno en memoria; rangos y seis logros se calculan a partir de flags verificadas. Tema, sonido y preferencia de animación se guardan en el navegador.
+
+Docker descarga las dependencias fijadas en package.json durante la construcción y copia los recursos locales a la imagen; no se usan CDN durante la ejecución. Primera construcción requiere Internet. Para iniciar sin Docker, ejecuta primero `npm install --ignore-scripts` y `npm run vendor` (Node.js 22 recomendado), luego `python3 server.py`. Sin recursos opcionales, las tarjetas y los retos HTTP siguen accesibles con fuentes del sistema. No se distribuyen herramientas externas de ataque ni se generan peticiones fuera del laboratorio. Los diagramas ilustran conceptos, no capturan tráfico real.
+
+Rangos por número de retos resueltos: Explorador (0), Operador (5), Analista (15), Especialista (27), Arquitecto de seguridad (42), Guardián de Cyber City (54). No se cambian las flags ni los desafíos. Los nombres, avatar, tokens y progreso siguen en memoria y se pierden al reiniciar el servidor.
