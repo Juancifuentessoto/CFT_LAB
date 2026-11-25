@@ -182,10 +182,45 @@
     group.append('text').attr('text-anchor','middle').attr('font-size',11).attr('y',17).text((d,i)=>i===1?(protectedMode?'CONTROL APLICADO':'CONTROL INSUFICIENTE'):'Seleccionar nodo');
     svg.append('text').attr('x',380).attr('y',145).attr('text-anchor','middle').attr('font-size',12).text(protectedMode?'Flujo protegido en el modelo conceptual':'Flujo vulnerable en el modelo conceptual');
   }
+  // Additional interactive models for selected scenarios. No network operations.
+  function renderMissionModel(){
+    const host=$('mission-model');host.replaceChildren();host.hidden=true;
+    if(!lab||!['11','12','38','43','50','51'].includes(lab.id))return;
+    host.hidden=false;
+    const add=(tag,text,parent=host)=>{const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;};
+    add('h3','Simulador didáctico · '+lab.title);
+    add('p','Valores y eventos ficticios. Este modelo no ejecuta herramientas ni aplica cambios reales.').className='city-caption';
+    const enabled=!!lab.report;
+    const control=document.createElement('label');control.className='choice';const check=document.createElement('input');check.type='checkbox';check.disabled=!enabled;control.append(check);
+    const modes={'11':'Aplicar limitación de carga','50':'Activar mitigación aguas arriba','12':'Validar TLS y certificado','51':'Instalar certificado válido','38':'Aplicar contención del equipo','43':'Aplicar política de entrada restrictiva'};
+    add('span',(enabled?'':'🔒 ')+modes[lab.id],control);
+    const result=add('p','');result.className='mission-model-result';result.setAttribute('role','status');
+    let update;
+    if(['11','50'].includes(lab.id)){
+      const label=add('label','Demanda simulada: 90%');label.htmlFor='model-demand';
+      const range=document.createElement('input');range.type='range';range.min='0';range.max='100';range.value='90';range.id='model-demand';host.append(range);
+      const meter=document.createElement('progress');meter.max=100;meter.setAttribute('aria-label','Carga conceptual del servicio');host.append(meter);
+      update=()=>{const incoming=Number(range.value),load=check.checked?Math.min(incoming,40):incoming;label.textContent='Demanda simulada: '+incoming+'%';meter.value=load;result.textContent='Carga del servicio: '+load+'% · '+(load>75?'Saturación':'Operativo')+' · Carga limitada: '+(incoming-load)+'%. Modelo simplificado, no mide un servidor real.';};
+      range.addEventListener('input',update);
+    }else if(['12','51'].includes(lab.id)){
+      const selector=document.createElement('select');selector.className='field';selector.setAttribute('aria-label','Tipo de certificado ficticio');
+      ['Certificado válido','Certificado no confiable','Certificado expirado'].forEach((v,i)=>{const opt=add('option',v,selector);opt.value=String(i);});selector.value='1';host.append(selector);
+      update=()=>{const valid=selector.value==='0';result.textContent=check.checked?(valid?'Conexión autenticada aceptada en el modelo.':'Conexión rechazada por validación del certificado.'):(valid?'Conexión aceptada; el modelo no exige la validación.':'Advertencia: conexión sin garantía de autenticidad en el modelo.');};selector.addEventListener('change',update);
+    }else if(lab.id==='38'){
+      const grid=document.createElement('div');grid.className='model-assets';host.append(grid);
+      const assets=['PC-01','PC-02','PC-03','SRV-01','Respaldo','SOC'].map(name=>add('span',name,grid));
+      update=()=>{assets.forEach((el,i)=>{const affected=[1,2,3].includes(i);el.className=affected?(check.checked?'contained':'alert'):'normal';el.textContent=['PC-01','PC-02','PC-03','SRV-01','Respaldo','SOC'][i]+' · '+(affected?(check.checked?'Aislado':'Alerta'):'Normal');});result.textContent=check.checked?'Contención representada; falta erradicar la causa y verificar respaldos.':'Tres activos presentan alertas ficticias. Analiza el alcance antes de recuperar.';};
+    }else{
+      const selector=document.createElement('select');selector.className='field';selector.setAttribute('aria-label','Conexión ficticia');
+      ['HTTPS público','SSH administrativo','SSH desde red pública','Servicio no autorizado'].forEach((v,i)=>{const opt=add('option',v,selector);opt.value=String(i);});selector.value='2';host.append(selector);
+      update=()=>{const allowed=Number(selector.value)<2;result.textContent=check.checked?(allowed?'Permitido por política ficticia.':'Denegado por política ficticia.'):'Sin política restrictiva: acceso permitido en este modelo.';};selector.addEventListener('change',update);
+    }
+    host.insertBefore(control,result);check.addEventListener('change',update);update();
+  }
   $('topology-vulnerable').onclick=()=>{protectedMode=false;drawTopology()};
   $('topology-protected').onclick=()=>{if(lab?.report){protectedMode=true;drawTopology()}};
-  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;$('topology-protected').disabled=true;$('topology-protected').textContent='🔒 Después de corregir';drawTopology();play()});
-  document.addEventListener('city:defense',e=>{if(!lab)return;lab.report=e.detail;protectedMode=false;$('topology-protected').disabled=!lab.report;$('topology-protected').textContent=lab.report?'Después de corregir':'🔒 Después de corregir';drawTopology();});
+  document.addEventListener('city:lab',e=>{lab=e.detail;protectedMode=false;$('topology-protected').disabled=true;$('topology-protected').textContent='🔒 Después de corregir';drawTopology();renderMissionModel();play()});
+  document.addEventListener('city:defense',e=>{if(!lab)return;lab.report=e.detail;protectedMode=false;$('topology-protected').disabled=!lab.report;$('topology-protected').textContent=lab.report?'Después de corregir':'🔒 Después de corregir';drawTopology();renderMissionModel();});
   async function createCity(){
     if(loading||sceneApi)return;loading=true;
     const host=$('city-viewport'),fallback=$('city-fallback');

@@ -168,6 +168,10 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="student-token"',dialog)
         self.assertIn('d3.arc()',city_js)
         self.assertIn('activateDashboardTab',city_js)
+        self.assertIn('renderMissionModel',city_js)
+        self.assertIn('id="mission-model"',html)
+        self.assertIn('id="mission-defense"',html)
+        self.assertIn('id="mission-next"',html)
         for asset in ('/city.js','/city.css'):
             with self.opener.open(self.url+asset,timeout=3) as r:
                 self.assertEqual(r.status,200)
