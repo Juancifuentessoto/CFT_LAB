@@ -13,7 +13,8 @@
     DEF:{short:'Blue Team',building:'Centro de defensa',color:0x2dd4bf,h:5.0,x:7,z:7}
   };
   const avatars={explorer:'🧭',shield:'🛡️',analyst:'🔍',engineer:'⚙️',pilot:'🚀',robot:'🤖'};
-  const ranks=[{n:0,name:'Explorador'},{n:5,name:'Operador'},{n:15,name:'Analista'},{n:27,name:'Especialista'},{n:42,name:'Arquitecto de seguridad'},{n:54,name:'Guardián de Cyber City'}];
+  const rankIcons=['🧭','⌨️','🔎','🛡️','🏗️','👑'];
+  let lastRank=null,rankNoticeTimer=null;
   const read=(k,f)=>{try{return localStorage.getItem(k)??f}catch{return f}};
   const save=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
   const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -56,12 +57,37 @@
   function renderProfile(){
     if(!model?.student)return;
     const done=model.groups.reduce((a,g)=>a+g.done,0), total=model.groups.reduce((a,g)=>a+g.total,0);
-    const rank=ranks.filter(r=>done>=r.n).at(-1), next=ranks.find(r=>r.n>done);
+    // El rango llega calculado desde el servidor; nunca desde el selector de avatar.
+    const progress=model.rankProgress; 
+    if(progress){
+      const rank=progress.current,next=progress.next;
+      $('rank-label').textContent=rank.name;
+      $('next-rank').textContent=next?(next.threshold-progress.completed)+' para '+next.name:'Rango máximo alcanzado';
+      const span=next?next.threshold-rank.threshold:1;
+      $('rank-fill').style.width=(next?Math.min(100,Math.max(0,(progress.completed-rank.threshold)/span*100)):100)+'%';
+      $('rank-ladder').replaceChildren(...progress.ranks.map((r,i)=>{
+        const li=document.createElement('li');
+        li.className=r.current?'current':r.unlocked?'unlocked':'locked';
+        if(r.current)li.setAttribute('aria-current','step');
+        const icon=document.createElement('span');icon.textContent=r.unlocked?rankIcons[i]:'🔒';icon.setAttribute('aria-hidden','true');
+        const name=document.createElement('strong');name.textContent=r.name+' · '+r.threshold+' misiones';
+        const state=document.createElement('span');state.className='rank-state';state.textContent=r.current?'Actual':r.unlocked?'Obtenido':'Bloqueado';
+        li.append(icon,name,state);return li;
+      }));
+      if(lastRank!==null&&rank.threshold>lastRank){
+        $('rank-unlock').textContent='🏆 ¡Nuevo rango desbloqueado! '+rank.name+' · '+progress.completed+' misiones completadas.';
+        $('rank-unlock').hidden=false;
+        clearTimeout(rankNoticeTimer);rankNoticeTimer=setTimeout(()=>$('rank-unlock').hidden=true,9000);
+        play(true);
+      }else if(lastRank!==null&&rank.threshold<lastRank){
+        clearTimeout(rankNoticeTimer);$('rank-unlock').hidden=true;
+      }
+      lastRank=rank.threshold;
+    }
     $('profile-name').textContent=model.student.name;
     $('avatar-select').value=avatars[model.student.avatar]?model.student.avatar:'explorer';
     $('avatar-display').textContent=avatars[$('avatar-select').value];
-    $('rank-label').textContent=rank.name;$('rank-count').textContent=done+' / '+total;
-    $('next-rank').textContent=next?(next.n-done)+' para '+next.name:'Rango máximo';
+    $('rank-count').textContent=(progress?progress.completed:done)+' / '+total;
     $('progress-percent').textContent=Math.round(done/Math.max(total,1)*100)+'%';
     const all=model.groups.filter(g=>g.done===g.total&&g.total>0);
     const feats=[['Primera flag',done>=1],['Cinco misiones',done>=5],['Distrito conquistado',all.length>0],['Defensor de la ciudad',all.some(g=>g.key==='DEF')],['Media ciudad',done>=27],['Ciudad asegurada',done===total&&total>0]];

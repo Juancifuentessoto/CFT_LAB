@@ -26,6 +26,29 @@ ROOT = Path(__file__).resolve().parent
 HOST = os.getenv('LAB_HOST', '127.0.0.1')
 PORT = int(os.getenv('LAB_PORT', '8000'))
 LEVELS = tuple(f'{number:02d}' for number in range(1, 55))
+RANKS = (
+    (0, 'Explorador'),
+    (5, 'Operador'),
+    (15, 'Analista'),
+    (27, 'Especialista'),
+    (42, 'Arquitecto de seguridad'),
+    (54, 'Guardián de Cyber City'),
+)
+
+def rank_progress(solved):
+    completed = sum(solved.get(level) is True for level in LEVELS)
+    current_threshold = max(n for n, _ in RANKS if completed >= n)
+    ranks = [
+        {'threshold': n, 'name': name, 'unlocked': completed >= n, 'current': n == current_threshold}
+        for n, name in RANKS
+    ]
+    return {
+        'completed': completed,
+        'current': next(r for r in ranks if r['current']),
+        'next': next((r for r in ranks if not r['unlocked']), None),
+        'ranks': ranks,
+    }
+
 # Las flags son aleatorias por arranque: no se pueden leer del código fuente.
 FLAGS = {level: f'FLAG{{LAB_{level}_{secrets.token_hex(6).upper()}}}' for level in LEVELS}
 SIGNING_KEY = secrets.token_bytes(32)
@@ -195,7 +218,10 @@ class LabHandler(BaseHTTPRequestHandler):
             self._json({'status': 'ok', 'challenges': len(LEVELS)})
             return
         if path == '/api/state':
-            self._json({'player': 'visitante', 'student': session['student'], 'medium_user': session['username'], 'medium_role': session['role'], 'solved': session['solved']})
+            with lock:
+                solved = dict(session['solved'])
+                profile = dict(session['student']) if session['student'] else None
+            self._json({'player': 'visitante', 'student': profile, 'medium_user': session['username'], 'medium_role': session['role'], 'solved': solved, 'rank_progress': rank_progress(solved)})
             return
 
         # 01: IDOR (no comprueba propietario del recurso).

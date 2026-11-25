@@ -77,6 +77,33 @@ class LabTests(unittest.TestCase):
             with self.assertRaises(HTTPError) as ctx:
                 self.post(path,body)
             self.assertEqual(ctx.exception.code,code)
+    def test_rank_thresholds(self):
+        expected = [(0, 'Explorador'), (5, 'Operador'), (15, 'Analista'), (27, 'Especialista'), (42, 'Arquitecto de seguridad'), (54, 'Guardián de Cyber City')]
+        self.post('/api/student/register', {'name': 'Prueba rangos'})
+        for count in range(55):
+            state = self.get('/api/state')['rank_progress']
+            self.assertEqual(state['completed'], count)
+            threshold, name = max((r for r in expected if r[0] <= count), key=lambda r: r[0])
+            self.assertEqual(state['current']['name'], name)
+            self.assertEqual(state['current']['threshold'], threshold)
+            self.assertEqual([r['unlocked'] for r in state['ranks']], [count >= n for n, _ in expected])
+            if count < 54:
+                level = server.LEVELS[count]
+                self.assertTrue(self.post('/api/verify', {'level': level, 'flag': server.FLAGS[level]})['correct'])
+                self.assertTrue(self.post('/api/verify', {'level': level, 'flag': server.FLAGS[level]})['correct'])
+        self.assertIsNone(state['next'])
+        self.post('/api/student/avatar', {'avatar': 'shield', 'rank': 'Explorador'})
+        self.assertEqual(self.get('/api/state')['rank_progress']['current']['name'], 'Guardián de Cyber City')
+        self.post('/api/reset', {})
+        self.assertEqual(self.get('/api/state')['rank_progress']['current']['name'], 'Explorador')
+
+    def test_rank_cannot_be_selected(self):
+        self.post('/api/student/register', {'name': 'Prueba de icono', 'rank': 'Guardián de Cyber City'})
+        self.post('/api/student/avatar', {'avatar': 'robot', 'rank': 'Guardián de Cyber City'})
+        self.assertEqual(self.get('/api/state')['rank_progress']['current']['name'], 'Explorador')
+        self.assertFalse(self.post('/api/verify', {'level': '11', 'flag': 'incorrecta'})['correct'])
+        self.assertEqual(self.get('/api/state')['rank_progress']['completed'], 0)
+
     def test_avatar_requires_student(self):
         with self.assertRaises(HTTPError) as ctx:
             self.post('/api/student/avatar', {'avatar': 'robot'})

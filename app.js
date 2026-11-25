@@ -70,6 +70,7 @@
   curriculum.scenarios.forEach(s=>levels.push({...s,description:s.theory,category:curriculum.groups[s.group],objective:'Analiza la evidencia ficticia y selecciona la remediación correcta.',kind:'Simulación guiada',fields:[],actions:[],hints:['Revisa qué propiedad de seguridad se pierde.','Busca una corrección de la causa, no solo del síntoma.','Comprueba que el control preserve el uso legítimo.']}));
   const $ = id => document.getElementById(id);
   let solvedState = {};
+  let rankProgress = null;
   let student = null;
   let groupFilter = 'ALL';
   function renderPortal(){
@@ -81,7 +82,7 @@
     $('cards').innerHTML=selected.map(l=>`<article class="lab-card"><div class="card-top"><code>${l.group}-${l.id}</code><span>${solvedState[l.id]?'✓ Completado':'□ Pendiente'}</span></div><h3>${l.title}</h3><div class="tags"><span class="tag ${l.tier==='Básico'?'easy':l.tier==='Medio'?'medium':'hard'}">${l.tier}</span><span class="kind">${l.kind}</span></div><p>${l.description}</p><div class="card-foot"><span>${l.hints.length} pistas disponibles</span><button class="btn" data-open="${l.id}">Entrar →</button></div></article>`).join('');
     $('all-groups').setAttribute('aria-pressed',String(groupFilter==='ALL'));
     $('portal-title').textContent=groupFilter==='ALL'?'Todos los laboratorios':curriculum.groups[groupFilter];
-    document.dispatchEvent(new CustomEvent('city:progress',{detail:{groups:Object.entries(curriculum.groups).map(([key,name])=>({key,name,total:levels.filter(l=>l.group===key).length,done:levels.filter(l=>l.group===key&&solvedState[l.id]).length})),selected:groupFilter,student:student?{name:student.name,avatar:student.avatar||'explorer'}:null}}));
+    document.dispatchEvent(new CustomEvent('city:progress',{detail:{groups:Object.entries(curriculum.groups).map(([key,name])=>({key,name,total:levels.filter(l=>l.group===key).length,done:levels.filter(l=>l.group===key&&solvedState[l.id]).length})),selected:groupFilter,rankProgress,student:student?{name:student.name,avatar:student.avatar||'explorer'}:null}}));
   }
   function openPortal(){ if(!student){$('welcome').hidden=false;$('student-name').focus();return;} $('portal').hidden=false;$('detail').hidden=true;renderPortal();window.scrollTo(0,0); }
   function openLab(id){if(!student)return;$('portal').hidden=true;$('detail').hidden=false;selectLevel(id);document.dispatchEvent(new CustomEvent('city:lab',{detail:{id:current.id,group:current.group,title:current.title,fix:current.fix,description:current.description}}));window.scrollTo(0,0); }
@@ -132,6 +133,7 @@
       if(!previous){$('portal').hidden=false;$('detail').hidden=true;}
       const solved = data.solved || {};
       solvedState = solved;
+      rankProgress = data.rank_progress || null;
       const count = levels.filter(l => solved[l.id]).length;
       $('score').textContent = String(count);
       $('bar').style.width = `${count / levels.length * 100}%`;

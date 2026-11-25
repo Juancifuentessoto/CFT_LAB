@@ -125,3 +125,7 @@ Rangos por número de retos resueltos: Explorador (0), Operador (5), Analista (1
 ### Puesto de acceso Cyber City
 
 La bienvenida utiliza una vista previa 3D animada de los nueve distritos, con una ilustración SVG local como alternativa si no hay WebGL. El movimiento se puede pausar y respeta la preferencia de movimiento reducido. Los formularios Nuevo alumno y Tengo un token conservan las mismas rutas de registro y recuperación. La escena se libera al abandonar la pantalla de acceso; el tema claro/oscuro también se aplica a esta vista.
+
+### Rangos académicos automáticos
+
+El servidor calcula los seis rangos a partir de misiones distintas resueltas (0, 5, 15, 27, 42 y 54). El selector cambia únicamente el icono cosmético; ningún campo de perfil permite asignarse rangos. Los rangos futuros se muestran bloqueados, los anteriores obtenidos y el actual destacado. Repetir una flag no suma otra misión; reiniciar el progreso devuelve a Explorador. Los datos siguen en memoria como antes.
