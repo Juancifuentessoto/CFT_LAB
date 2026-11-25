@@ -121,3 +121,7 @@ El portal incorpora una ciudad 3D Three.js (nueve distritos, selección por edif
 Docker descarga las dependencias fijadas en package.json durante la construcción y copia los recursos locales a la imagen; no se usan CDN durante la ejecución. Primera construcción requiere Internet. Para iniciar sin Docker, ejecuta primero `npm install --ignore-scripts` y `npm run vendor` (Node.js 22 recomendado), luego `python3 server.py`. Sin recursos opcionales, las tarjetas y los retos HTTP siguen accesibles con fuentes del sistema. No se distribuyen herramientas externas de ataque ni se generan peticiones fuera del laboratorio. Los diagramas ilustran conceptos, no capturan tráfico real.
 
 Rangos por número de retos resueltos: Explorador (0), Operador (5), Analista (15), Especialista (27), Arquitecto de seguridad (42), Guardián de Cyber City (54). No se cambian las flags ni los desafíos. Los nombres, avatar, tokens y progreso siguen en memoria y se pierden al reiniciar el servidor.
+
+### Puesto de acceso Cyber City
+
+La bienvenida utiliza una vista previa 3D animada de los nueve distritos, con una ilustración SVG local como alternativa si no hay WebGL. El movimiento se puede pausar y respeta la preferencia de movimiento reducido. Los formularios Nuevo alumno y Tengo un token conservan las mismas rutas de registro y recuperación. La escena se libera al abandonar la pantalla de acceso; el tema claro/oscuro también se aplica a esta vista.

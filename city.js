@@ -187,5 +187,90 @@
     }catch(e){fallback.hidden=false;fallback.textContent='Mapa 3D no disponible. Puedes seleccionar todos los distritos en las tarjetas inferiores.';console.warn('Cyber City:',e);}
   }
   document.addEventListener('city:progress',e=>{model=e.detail;renderProfile();drawProgress();if(model.student){createCity();sceneApi?.progress();}});
+  // Puesto de acceso: vista previa independiente del mapa de los alumnos.
+  const gateway=$('welcome');
+  let gatewayMode='register',gatewayScene=null,gatewayLoading=false,gatewayPaused=motionPreference.matches||read('ctf-city-gateway-paused','off')==='on';
+  function gatewayTab(mode,focus=true){
+    gatewayMode=mode;
+    $('gateway-register').hidden=mode!=='register';
+    $('gateway-resume').hidden=mode!=='resume';
+    $('gateway-new').setAttribute('aria-pressed',String(mode==='register'));
+    $('gateway-return').setAttribute('aria-pressed',String(mode==='resume'));
+    if(focus)$(mode==='register'?'student-name':'resume-token').focus();
+  }
+  $('gateway-new').onclick=()=>gatewayTab('register');
+  $('gateway-return').onclick=()=>gatewayTab('resume');
+  // La navegación de identificación conserva el foco en el formulario visible.
+  $('identify').addEventListener('click',()=>gatewayTab(gatewayMode));
+  $('brand-home').addEventListener('click',()=>{if(!gateway.hidden)gatewayTab(gatewayMode);});
+  function gatewayMotionUI(){
+    $('gateway-motion').textContent=gatewayPaused?'Activar animación':'Pausar animación';
+    $('gateway-motion').setAttribute('aria-pressed',String(gatewayPaused));
+  }
+  $('gateway-motion').onclick=()=>{gatewayPaused=!gatewayPaused;save('ctf-city-gateway-paused',gatewayPaused?'on':'off');gatewayMotionUI();gatewayScene?.draw();};
+  motionPreference.addEventListener?.('change',e=>{if(e.matches){gatewayPaused=true;gatewayMotionUI();gatewayScene?.draw();}});
+  gatewayMotionUI();
+  async function createGateway(){
+    if(gateway.hidden||gatewayLoading||gatewayScene)return;
+    gatewayLoading=true;
+    const host=$('gateway-scene'),fallback=$('gateway-fallback');
+    let renderer=null,observer=null,scene=null;
+    try{
+      const T=await import('/vendor/three.module.js');
+      if(gateway.hidden){gatewayLoading=false;return;}
+      renderer=new T.WebGLRenderer({antialias:true,alpha:true});
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+      renderer.outputColorSpace=T.SRGBColorSpace;
+      renderer.setClearColor(0,0);
+      scene=new T.Scene();
+      const camera=new T.OrthographicCamera(-15,15,10,-10,.1,120);
+      const city=new T.Group();scene.add(city);
+      scene.add(new T.HemisphereLight(0xffffff,0x64748b,2.0));
+      const sun=new T.DirectionalLight(0xffffff,2.5);sun.position.set(12,20,8);scene.add(sun);
+      const material=(c)=>new T.MeshStandardMaterial({color:c});
+      const ground=material(0x223348),road=material(0x101827),wall=material(0x3b526c),roof=material(0x526d88),line=material(0x8ba1b9);
+      const geom=new T.BoxGeometry(1,1,1);
+      function box(parent,w,h,d,x,y,z,mat){const m=new T.Mesh(geom,mat);m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
+      box(city,23,.55,23,0,-.4,0,ground);
+      for(const n of [-3.5,3.5]){
+        box(city,1.3,.04,22.8,n,-.1,0,road);box(city,22.8,.04,1.3,0,-.09,n,road);
+        for(let i=-10;i<=10;i+=2){box(city,.07,.02,.65,n,-.07,i,line);box(city,.65,.02,.07,i,-.06,n,line);}
+      }
+      for(const d of Object.values(districts)){
+        const g=new T.Group();g.position.set(d.x,0,d.z);city.add(g);
+        const accent=new T.MeshStandardMaterial({color:d.color,emissive:d.color,emissiveIntensity:.22});
+        box(g,4.5,.12,4.5,0,.02,0,material(d.color));
+        box(g,2.8,d.h,2.8,0,d.h/2,0,wall);
+        box(g,3.05,.2,3.05,0,d.h+.08,0,accent);
+        box(g,1.2,.5,1.2,0,d.h+.4,0,roof);
+        for(let row=.6;row<d.h-.2;row+=.8){for(const n of [-.85,0,.85]){box(g,.52,.32,.035,n,row,1.42,accent);box(g,.52,.32,.035,n,row,-1.42,accent);box(g,.035,.32,.52,1.42,row,n,accent);box(g,.035,.32,.52,-1.42,row,n,accent);}}
+      }
+      const packetGeometry=new T.SphereGeometry(.14,8,6);
+      const packetMaterials=[new T.MeshBasicMaterial({color:0xfbbf24}),new T.MeshBasicMaterial({color:0x2dd4bf})];
+      const packets=Array.from({length:6},(_,i)=>{const p=new T.Mesh(packetGeometry,packetMaterials[i%2]);city.add(p);return p;});
+      let angle=Math.PI/4,last=null,phase=0;
+      function applyTheme(){const light=theme==='light';ground.color.set(light?0xc0cfdd:0x223348);road.color.set(light?0x8093a5:0x101827);wall.color.set(light?0x9db2c8:0x3b526c);roof.color.set(light?0xd1dce5:0x526d88);draw();}
+      function draw(){camera.position.set(Math.sin(angle)*32,24,Math.cos(angle)*32);camera.lookAt(0,1,0);renderer.render(scene,camera);}
+      function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);const a=w/h,half=Math.max(11.8,17/a);camera.left=-half*a;camera.right=half*a;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();draw();}
+      function dispose(){renderer.setAnimationLoop(null);observer?.disconnect();scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();gatewayScene=null;gatewayLoading=false;fallback.hidden=false;$('gateway-motion').hidden=true;}
+      host.append(renderer.domElement);
+      observer=new ResizeObserver(resize);observer.observe(host);
+      gatewayScene={draw,theme:applyTheme,dispose};
+      resize();applyTheme();
+      fallback.hidden=true;$('gateway-motion').hidden=false;
+      renderer.setAnimationLoop(t=>{
+        if(gateway.hidden||document.hidden||gatewayPaused){last=null;return;}
+        const dt=last===null?0:Math.min(.05,(t-last)/1000);last=t;
+        angle+=dt*.13;phase+=dt;
+        packets.forEach((p,i)=>{const v=((phase*.22+i*.19)%1)*20-10;p.position.set(i%2?3.5:v,.19,i%2?v:-3.5);});
+        draw();
+      });
+      renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();dispose();gatewayLoading=true;});
+    }catch(e){observer?.disconnect();if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();}gatewayScene=null;fallback.hidden=false;$('gateway-motion').hidden=true;console.warn('Cyber City acceso:',e);}
+  }
+  const gatewayObserver=new MutationObserver(()=>{if(gateway.hidden){gatewayScene?.dispose();}else createGateway();});
+  gatewayObserver.observe(gateway,{attributes:true,attributeFilter:['hidden']});
+  $('theme-toggle').addEventListener('click',()=>gatewayScene?.theme());
+  if(!gateway.hidden)createGateway();
   themeApply();
 })();

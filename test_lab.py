@@ -92,6 +92,10 @@ class LabTests(unittest.TestCase):
         self.assertIn('id="student-area" hidden',html)
         self.assertIn('id="register-form"',html)
         self.assertIn('id="resume-form"',html)
+        self.assertIn('id="gateway-scene"',html)
+        self.assertIn('id="gateway-fallback"',html)
+        self.assertIn('id="gateway-new"',html)
+        self.assertIn('id="gateway-return"',html)
         self.assertIn('id="city-viewport"',html)
         self.assertIn('id="progress-chart"',html)
         for asset in ('/city.js','/city.css'):
