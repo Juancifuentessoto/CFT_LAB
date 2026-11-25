@@ -1,6 +1,6 @@
-# BURP LAB — 10 retos CTF con Docker
+# CTF_LAB — hacking ético y ciberdefensa con Docker
 
-Aplicación web **deliberadamente vulnerable**, en español, para practicar interceptación y edición de tráfico con **Burp Suite**. Cada ejercicio tiene una flag independiente, dos pistas y verificación de progreso (0/10). Se ejecuta de forma local, sin bases de datos externas y sin dependencias Python adicionales.
+Aplicación web **deliberadamente vulnerable**, en español, para practicar interceptación y edición de tráfico con **Burp Suite**. Cada ejercicio tiene una flag independiente, dos pistas y verificación de progreso (0/54 incluyendo las simulaciones). Se ejecuta de forma local, sin bases de datos externas y sin dependencias Python adicionales.
 
 > **Advertencia de seguridad:** es una aplicación insegura por diseño. Úsala únicamente en tu propio equipo o en una máquina virtual controlada. No la publiques en Internet, no cambies el mapeo del puerto para exponerlo a `0.0.0.0`, y no la reutilices en producción.
 
@@ -99,3 +99,47 @@ python3 server.py
 ```
 
 En este modo el servidor escucha en `127.0.0.1:8000` por defecto. La imagen Docker define `LAB_HOST=0.0.0.0` **únicamente dentro del contenedor**, mientras que Compose restringe la publicación en el anfitrión a `127.0.0.1`.
+
+## 7. Portal y aprendizaje defensivo
+
+El portal agrupa **54 laboratorios** en nueve módulos: Hacking de redes; Aplicaciones web; Credenciales y accesos; Criptografía; Ingeniería social; Reconocimiento y OSINT; Malware y análisis forense; Desafíos integradores; Blue Team y ciberdefensa. Los 10 retos HTTP originales conservan sus rutas y flags, y muestran una guía de corrección y verificación. Los 44 nuevos son **simulaciones guiadas**, no ataques ejecutables: cada uno presenta teoría, herramienta de referencia, evidencia ficticia, opciones de remediación y verificación. El servidor emite una flag tras una decisión correcta y el validador registra el progreso en la sesión. No hay escaneo externo, envío de correos, generación de tráfico de ataque ni ejecución de malware.
+
+La interfaz usa un tema oscuro, tarjetas, filtros por módulo y un indicador de progreso. La pantalla de bienvenida solicita el nombre o alias del alumno y genera un token aleatorio individual para recuperar su progreso desde otro navegador conectado al mismo servidor. El botón Salir conserva el progreso; Reiniciar mi progreso borra los ejercicios resueltos sin cambiar la identidad ni el token. La sesión es local y en memoria: nombres, tokens y progreso se pierden si se reinicia el servidor. No hay panel docente, autenticación institucional ni flags individuales (las flags siguen siendo comunes al arranque del laboratorio). La identificación controla la navegación de la interfaz; los endpoints de práctica originales permanecen accesibles para Burp. Las herramientas indicadas no están instaladas en el contenedor. Las guías de defensa son educativas: no modifican el firewall, la red o el código del anfitrión.
+
+### Comprobación rápida
+
+Tras iniciar el servidor, visita /health y comprueba que challenges es 54. Abre el portal, verifica los nueve filtros, entra en el reto 01 y confirma que el endpoint original responde; abre un escenario nuevo, prueba una respuesta incorrecta y otra correcta, valida la flag y comprueba que el progreso aumenta. Reinicia el progreso y comprueba que vuelve a cero.
+
+### Identificación de alumnos
+
+Abre el portal en un navegador nuevo: introduce nombre o alias y pulsa Comenzar. Guarda el token mostrado en el portal. Pulsa Salir o usa otro navegador del mismo servidor, introduce el token en Retomar y comprueba que se conservan los retos resueltos. No compartas el token. No utilices información personal sensible ni expongas el servidor deliberadamente vulnerable a Internet.
+
+## Cyber City 2.0
+
+El portal incorpora una ciudad 3D Three.js (nueve distritos, selección por edificios, giro y zoom), gráficos D3.js con el progreso real y topologías conceptuales interactivas antes/después de la corrección. Las tarjetas permanecen disponibles si WebGL falla. Puedes pausar el movimiento y cambiar entre tema claro y oscuro. Los sonidos sintetizados son opcionales y están desactivados inicialmente. El avatar se guarda con el alumno en memoria; rangos y seis logros se calculan a partir de flags verificadas. Tema, sonido y preferencia de animación se guardan en el navegador.
+
+Docker descarga las dependencias fijadas en package.json durante la construcción y copia los recursos locales a la imagen; no se usan CDN durante la ejecución. Primera construcción requiere Internet. Para iniciar sin Docker, ejecuta primero `npm install --ignore-scripts` y `npm run vendor` (Node.js 22 recomendado), luego `python3 server.py`. Sin recursos opcionales, las tarjetas y los retos HTTP siguen accesibles con fuentes del sistema. No se distribuyen herramientas externas de ataque ni se generan peticiones fuera del laboratorio. Los diagramas ilustran conceptos, no capturan tráfico real.
+
+Rangos por número de retos resueltos: Explorador (0), Operador (5), Analista (15), Especialista (27), Arquitecto de seguridad (42), Guardián de Cyber City (54). No se cambian las flags ni los desafíos. Los nombres, avatar, tokens y progreso siguen en memoria y se pierden al reiniciar el servidor.
+
+### Puesto de acceso Cyber City
+
+La bienvenida utiliza una vista previa 3D animada de los nueve distritos, con una ilustración SVG local como alternativa si no hay WebGL. El movimiento se puede pausar y respeta la preferencia de movimiento reducido. Los formularios Nuevo alumno y Tengo un token conservan las mismas rutas de registro y recuperación. La escena se libera al abandonar la pantalla de acceso; el tema claro/oscuro también se aplica a esta vista.
+
+### Rangos académicos automáticos
+
+El servidor calcula los seis rangos a partir de misiones distintas resueltas (0, 5, 15, 27, 42 y 54). El selector cambia únicamente el icono cosmético; ningún campo de perfil permite asignarse rangos. Los rangos futuros se muestran bloqueados, los anteriores obtenidos y el actual destacado. Repetir una flag no suma otra misión; reiniciar el progreso devuelve a Explorador. Los datos siguen en memoria como antes.
+
+### Dashboard compacto
+
+La ciudad 3D y el panel académico tienen alturas independientes. El resumen superior muestra misiones, distritos completados, rango y logros. En el panel lateral las pestañas Progreso, Rangos y Logros alternan el contenido; el progreso de cada distrito se representa con un anillo D3.js seleccionable (texto alternativo si D3 no está disponible). Avatar, sonido y token de recuperación se encuentran en el diálogo Perfil, accesible desde el encabezado o el engranaje. El rango sigue siendo calculado por el servidor y no se puede elegir. Los 54 retos y los controles de ciudad permanecen intactos.
+
+### Mission Update
+
+Cada uno de los 54 retos tiene un briefing, explicación técnica, objetivo, herramientas, pistas y nodos de diagrama específicos. El panel de práctica original se conserva. Los 44 escenarios siguen siendo ejercicios de decisión con evidencias sintéticas, no herramientas que ejecutan ataques. El informe completo reside en remediation.json, que no se sirve públicamente. GET /api/remediation?level=XX exige perfil y flag previamente validada en la sesión. Los controles antes/después y las comprobaciones defensivas son modelos educativos y no aplican cambios al anfitrión. La navegación anterior/siguiente recorre el distrito actual. Las opciones de las preguntas pueden incluir controles correctos, pero la explicación detallada se desbloquea después de validar. Ejecuta python3 -m unittest -v test_lab para verificar el catálogo y las restricciones.
+
+Se incluyen seis modelos interactivos adicionales para DoS/DDoS, MITM, ransomware, firewall Linux, mitigación DDoS y certificados TLS (11, 12, 38, 43, 50, 51). Los controles defensivos quedan bloqueados hasta validar la flag. No hay tráfico real ni cambios del anfitrión.
+
+### Vista compacta de misiones
+
+Los 54 niveles comparten una plantilla: cabecera compacta, franja de briefing/objetivo/herramientas, práctica y flag juntas, visor de respuesta amplio con copia y ampliación, pistas plegables y navegación. Validar la flag no reemplaza la última respuesta de práctica. El bloque educativo y la remediación se muestran tras recibir el informe autorizado por el servidor; incluye la topología y los simuladores existentes. El reinicio permanece en el portal y la guía en la navegación.

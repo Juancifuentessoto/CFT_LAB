@@ -1,0 +1,596 @@
+{
+  "10": {
+    "cause": "Una URL aceptada por texto puede representar un destino distinto tras normalización o resolución.",
+    "fix": "Permitir solo destinos aprobados, normalizar y validar IP resuelta, bloquear rangos internos y redirecciones no permitidas; aplicar firewall de salida.",
+    "implementation": "Prefiere destinos explícitamente permitidos; analiza URL con biblioteca, valida esquema y dirección resuelta, revalida redirecciones o desactívalas y restringe salida de red.",
+    "verify": [
+      "Probar destinos aprobados y distintas representaciones de destinos internos: solo los aprobados se aceptan.",
+      "Comprueba destinos permitidos, representaciones alternativas de direcciones y redirecciones hacia rangos internos."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "11": {
+    "cause": "DoS agota recursos; DDoS distribuye la demanda entre orígenes y puede saturar el enlace.",
+    "fix": "Limitar solicitudes por identidad y ruta; aplicar cuotas, caché y protección DDoS aguas arriba.",
+    "implementation": "Aplica cuotas por identidad y ruta, caché y límites de concurrencia; coordina mitigación aguas arriba con el proveedor si el enlace se satura. No generes inundaciones reales.",
+    "verify": [
+      "Comparar latencia, tasa de errores y solicitudes legítimas admitidas con el límite activo.",
+      "Compara métricas bajo carga local acotada, incluidos errores y éxito de solicitudes legítimas."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "12": {
+    "cause": "Un intermediario puede leer o modificar datos si el canal no autentica adecuadamente al otro extremo.",
+    "fix": "Exigir HTTPS/TLS, validar cadena y nombre del certificado y habilitar HSTS en el sitio HTTPS.",
+    "implementation": "Exige HTTPS con certificados confiables y comprobación de nombre; usa HSTS tras validar el despliegue. Nunca desactives la validación TLS para resolver errores.",
+    "verify": [
+      "Confirmar que los datos no aparecen en claro y que un certificado no válido se rechaza.",
+      "Comprueba en datos de laboratorio que no se observan contenidos en claro y que un certificado inválido falla."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "13": {
+    "cause": "La resolución DNS vincula nombres a destinos y una respuesta falsa puede redirigir al usuario.",
+    "fix": "Usar resolutores confiables con validación DNSSEC donde esté firmado; verificar TLS del destino.",
+    "implementation": "Usa resolutores administrados con DNSSEC validado para zonas firmadas, protege su configuración y verifica certificados TLS independientemente de DNS.",
+    "verify": [
+      "Comparar respuestas del resolutor autorizado y comprobar que una firma inválida se rechaza.",
+      "Valida resolución esperada y rechazo de firmas incorrectas en una zona de prueba."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "14": {
+    "cause": "La IP de origen puede ser falsificada y no debe sustituir autenticación.",
+    "fix": "Aplicar filtrado de origen en el borde, uRPF cuando proceda y autenticación independiente de IP.",
+    "implementation": "Aplica filtrado de entrada/salida de prefijos por interfaz y uRPF cuando la topología lo permita; conserva autenticación de aplicación.",
+    "verify": [
+      "Confirmar que los orígenes incompatibles con la interfaz se descartan y registrar el evento.",
+      "Comprueba que los prefijos imposibles se descartan y que las rutas legítimas asimétricas no se bloquean indebidamente."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "15": {
+    "cause": "ARP asocia direcciones IPv4 y MAC en la red local; anuncios no confiables alteran esa asociación.",
+    "fix": "Activar DHCP snooping y Dynamic ARP Inspection en equipos compatibles; segmentar la red.",
+    "implementation": "Activa DHCP snooping y Dynamic ARP Inspection en switches compatibles, configura asociaciones estáticas necesarias y segmenta los clientes.",
+    "verify": [
+      "Comprobar que cambios no autorizados de asociaciones generan rechazo o alerta.",
+      "Comprueba en red aislada que asociaciones no autorizadas se rechazan sin afectar clientes legítimos."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "16": {
+    "cause": "Un SSID es un nombre, no una garantía de identidad del punto de acceso.",
+    "fix": "Usar WPA3-Enterprise cuando sea compatible, validar certificado del servidor y deshabilitar conexión automática a redes desconocidas.",
+    "implementation": "Configura perfiles administrados WPA3-Enterprise cuando proceda, CA y nombre de servidor esperados; evita conexión automática a redes no aprobadas.",
+    "verify": [
+      "Verificar que los clientes rechazan el perfil no autorizado.",
+      "Prueba que un perfil no autorizado o certificado incorrecto no se acepta."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "17": {
+    "cause": "XSS aparece cuando datos no confiables se interpretan como código en el navegador.",
+    "fix": "Usar textContent o escape contextual; sanitizar HTML permitido y añadir CSP como defensa adicional.",
+    "implementation": "Para texto usa element.textContent = comentario; para HTML permitido aplica sanitizador mantenido y escape contextual. CSP es defensa adicional.",
+    "verify": [
+      "Probar que texto con caracteres HTML se muestra como texto y que la función legítima sigue operativa.",
+      "Prueba texto con marcado y caracteres especiales; debe visualizarse sin ejecución y conservar formato permitido."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "18": {
+    "cause": "CSRF aprovecha credenciales que el navegador adjunta automáticamente a una solicitud.",
+    "fix": "Validar token CSRF ligado a sesión, comprobar origen cuando corresponda y usar SameSite apropiado.",
+    "implementation": "Exige token CSRF ligado a la sesión en operaciones de cambio, comprueba Origin cuando proceda, usa SameSite apropiado y evita mutaciones por GET.",
+    "verify": [
+      "Una petición sin token válido debe fallar; una operación legítima debe funcionar.",
+      "Verifica que una petición sin token válido se rechaza y que el formulario legítimo funciona."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "19": {
+    "cause": "Una shell puede interpretar metacaracteres como instrucciones en vez de datos.",
+    "fix": "Sustituir shell por API específica o argumentos separados sin shell; validar opciones y limitar privilegios.",
+    "implementation": "Sustituye comandos por APIs específicas; si es imprescindible ejecutar un programa, usa argumentos separados, shell=False, lista de opciones permitidas y usuario sin privilegios.",
+    "verify": [
+      "Comprobar que entradas inesperadas no modifican la operación y que no se invoca una shell.",
+      "Verifica que entradas inesperadas no cambian la operación y que no se invoca una shell."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "20": {
+    "cause": "La carga insegura puede exponer contenido o permitir su interpretación como código.",
+    "fix": "Limitar tipos y tamaño, comprobar contenido, generar nombres propios y guardar fuera del webroot sin ejecución.",
+    "implementation": "Usa lista permitida de formatos, límites de tamaño, validación de contenido, nombres generados y almacenamiento fuera de webroot sin ejecución; aplica permisos mínimos.",
+    "verify": [
+      "Verificar rechazo de tipos no permitidos y que los aceptados se descargan sin ejecutarse.",
+      "Rechaza archivos de tipo o tamaño no permitido; los aceptados deben descargarse sin ejecución."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "21": {
+    "cause": "La fuerza bruta prueba repetidamente credenciales; el riesgo aumenta con contraseñas débiles y ausencia de límites.",
+    "fix": "Limitar intentos con retrasos progresivos, MFA y alertas; evitar bloqueos que faciliten DoS.",
+    "implementation": "Limita intentos por cuenta y origen con retrasos progresivos, MFA y alertas. Evita bloqueos permanentes que permitan provocar indisponibilidad.",
+    "verify": [
+      "Revisar que el límite reduce intentos y que una cuenta legítima puede recuperarse.",
+      "Revisa que se limitan ráfagas y existe recuperación segura para el titular legítimo."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "22": {
+    "cause": "Un ataque de diccionario explota elecciones previsibles, no requiere probar todo el espacio posible.",
+    "fix": "Bloquear contraseñas comunes o comprometidas y promover contraseñas largas, únicas y MFA.",
+    "implementation": "Rechaza contraseñas comunes y comprometidas, permite frases largas y gestores de contraseñas; activa MFA y almacena hashes resistentes.",
+    "verify": [
+      "Confirmar que las claves de prueba débiles se rechazan y las fuertes se admiten.",
+      "Comprueba rechazo de ejemplos débiles y aceptación de una frase de paso larga y única."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "23": {
+    "cause": "Credential stuffing explota reutilización de credenciales expuestas en otros servicios.",
+    "fix": "Usar passkeys o MFA, detección de anomalías y contraseñas únicas; limitar intentos por cuenta y origen.",
+    "implementation": "Prioriza passkeys o MFA resistente al phishing, contraseñas únicas, límites por cuenta y origen y detección de anomalías.",
+    "verify": [
+      "Simular el patrón de fallos y comprobar alertas, límites y segundo factor.",
+      "Reproduce únicamente eventos sintéticos; verifica alertas y controles de acceso."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "24": {
+    "cause": "ATO es el resultado de adquirir control de una cuenta mediante credenciales o sesiones comprometidas.",
+    "fix": "Revocar sesiones sospechosas, exigir reautenticación para cambios sensibles y notificar al titular.",
+    "implementation": "Revoca sesiones sospechosas, exige reautenticación en cambios sensibles, notifica al titular y verifica recuperación por un canal seguro.",
+    "verify": [
+      "Comprobar que el token revocado falla y que un cambio sensible requiere verificación.",
+      "Comprueba que tokens revocados fallan y que cambiar datos de recuperación exige nueva verificación."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "25": {
+    "cause": "SIM swapping desplaza el control de un número; SMS no garantiza identidad del titular.",
+    "fix": "Preferir passkeys o llave física, activar PIN de portabilidad si el operador lo permite y recuperar acceso por canales verificados.",
+    "implementation": "Prefiere passkeys o llaves físicas, protege la portabilidad con el operador cuando sea posible y establece recuperación con identidad verificada.",
+    "verify": [
+      "Confirmar que la recuperación no depende únicamente del número y que los cambios quedan auditados.",
+      "Comprueba que una cuenta no puede recuperarse exclusivamente por posesión del número."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "26": {
+    "cause": "Base64 es codificación reversible, no cifrado ni protección de acceso.",
+    "fix": "Eliminar secretos del cliente y usar cifrado autenticado con claves protegidas cuando se necesite confidencialidad.",
+    "implementation": "Retira secretos de recursos públicos; si necesitas confidencialidad, usa cifrado autenticado con claves protegidas y autorización en servidor.",
+    "verify": [
+      "Verificar que ningún secreto viaja en recursos del cliente y que se requiere clave para descifrar.",
+      "Revisa recursos del cliente y verifica que el acceso a datos sensibles exige autorización."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "27": {
+    "cause": "Los hashes rápidos facilitan la comprobación masiva de candidatos tras una filtración.",
+    "fix": "Migrar a Argon2id con salt individual y parámetros ajustados; rehash al iniciar sesión y reset si hubo exposición.",
+    "implementation": "Usa Argon2id con salt aleatorio individual y parámetros ajustados al servicio; rehash tras autenticación y restablece claves si hubo exposición.",
+    "verify": [
+      "Revisar que hashes de una misma contraseña difieren y que el inicio legítimo sigue funcionando.",
+      "Dos contraseñas iguales deben producir hashes distintos; prueba autenticación y migración."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "28": {
+    "cause": "Una clave entregada junto al texto cifrado no protege el secreto frente al receptor.",
+    "fix": "Mantener los secretos en el servidor; usar cifrado autenticado con gestión de claves cuando sea necesario.",
+    "implementation": "Retira la clave y los secretos del cliente; rota claves expuestas y usa cifrado autenticado con gestión de claves cuando corresponda.",
+    "verify": [
+      "Confirmar que los recursos públicos ya no contienen la clave y que la autorización es del servidor.",
+      "Confirma ausencia de claves en el bundle y autorización de datos en servidor."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "29": {
+    "cause": "AES puede ser fuerte, pero la seguridad depende de proteger la clave y usar correctamente el modo.",
+    "fix": "Retirar y rotar la clave expuesta; usar un gestor de secretos del servidor y AES-GCM con nonces únicos si aplica.",
+    "implementation": "Rota la clave publicada; usa gestor de secretos del servidor, AES-GCM con nonces únicos y autenticación del acceso.",
+    "verify": [
+      "Revisar los bundles, rotar la clave y comprobar que el cliente solo recibe datos autorizados.",
+      "Inspecciona recursos públicos y prueba que descifrar exige una clave no expuesta."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "30": {
+    "cause": "Un PRNG no criptográfico no ofrece imprevisibilidad suficiente para credenciales.",
+    "fix": "Usar secrets.token_urlsafe o CSPRNG equivalente; añadir caducidad, uso único y límites de intentos.",
+    "implementation": "En Python usa secrets.token_urlsafe(32); asocia tokens a propósito y usuario, caducidad y uso único. Limita intentos.",
+    "verify": [
+      "Verificar el uso de CSPRNG y que tokens caducados o usados se rechazan.",
+      "Revisa uso de CSPRNG y comprueba rechazo de tokens expirados o reutilizados."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "31": {
+    "cause": "Phishing manipula decisiones humanas mediante suplantación y solicitudes engañosas.",
+    "fix": "Reportar por canal oficial, verificar el dominio fuera del mensaje, aplicar SPF/DKIM/DMARC y MFA resistente al phishing.",
+    "implementation": "Configura SPF, DKIM y DMARC alineados, fomenta reporte por canal oficial y usa MFA resistente al phishing. No recopiles credenciales reales.",
+    "verify": [
+      "Comprobar flujo de reporte y rechazo de autenticación en dominios ajenos.",
+      "Prueba el flujo de reporte con mensajes inertes y verifica autenticación en el dominio autorizado."
+    ],
+    "reference": "https://www.cisa.gov/secure-our-world",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "32": {
+    "cause": "Spear phishing adapta el engaño a una persona o función específica.",
+    "fix": "Verificar por un canal independiente y exigir doble aprobación para cambios de pago.",
+    "implementation": "Exige verificación independiente y doble aprobación de cambios financieros; capacita al personal para reportar urgencias atípicas.",
+    "verify": [
+      "Simular una solicitud irregular y confirmar que la segunda aprobación la detiene.",
+      "Simula una orden sin segunda aprobación y comprueba que el flujo la detiene."
+    ],
+    "reference": "https://www.cisa.gov/secure-our-world",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "33": {
+    "cause": "Smishing traslada el engaño a mensajes móviles.",
+    "fix": "No abrir el enlace; comprobar en la aplicación oficial y reportar el mensaje.",
+    "implementation": "Consulta el servicio por su app o dirección oficial sin seguir el enlace; reporta el mensaje y evita solicitar claves por SMS.",
+    "verify": [
+      "Verificar que el procedimiento de soporte no solicita claves mediante SMS.",
+      "Verifica que los procedimientos de soporte no piden secretos mediante mensajes."
+    ],
+    "reference": "https://www.cisa.gov/secure-our-world",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "34": {
+    "cause": "Vishing utiliza conversación y confianza aparente para inducir acciones.",
+    "fix": "Cortar y devolver la llamada al número oficial; nunca compartir códigos de autenticación.",
+    "implementation": "Finaliza la llamada y verifica por el número oficial; prohíbe compartir códigos y establece procedimientos de reporte.",
+    "verify": [
+      "Comprobar que el personal sabe reportar y verificar llamadas por canales oficiales.",
+      "Comprueba con un guion inerte que el personal verifica la identidad antes de actuar."
+    ],
+    "reference": "https://www.cisa.gov/secure-our-world",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "35": {
+    "cause": "Un puerto abierto identifica un servicio accesible, pero no demuestra una vulnerabilidad por sí solo.",
+    "fix": "Cerrar el servicio innecesario o restringirlo a una red administrativa; mantener inventario.",
+    "implementation": "Cierra servicios no necesarios o restríngelos a una red de administración; actualiza el inventario y registra excepciones.",
+    "verify": [
+      "Comparar el inventario autorizado con una nueva revisión local.",
+      "Contrasta el inventario aprobado con una revisión autorizada local."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "36": {
+    "cause": "Una versión obsoleta puede carecer de actualizaciones; verifica avisos antes de concluir exposición.",
+    "fix": "Actualizar a versión soportada y restringir exposición; comprobar avisos del fabricante.",
+    "implementation": "Migra a una versión soportada, consulta avisos del fabricante, reduce exposición y planifica pruebas y reversión.",
+    "verify": [
+      "Verificar versión instalada, servicio operativo y superficie de red reducida.",
+      "Confirma versión instalada, funcionalidad y ausencia de exposición innecesaria."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "37": {
+    "cause": "Los metadatos pueden revelar información innecesaria aunque el contenido visible parezca seguro.",
+    "fix": "Eliminar metadatos innecesarios antes de publicar y revisar el contenido por información sensible.",
+    "implementation": "Genera una copia para publicación, elimina metadatos innecesarios con herramientas como ExifTool y revisa también el contenido visible.",
+    "verify": [
+      "Inspeccionar una copia limpia y comprobar ausencia de campos sensibles.",
+      "Inspecciona la copia limpia; conserva el original protegido cuando sea necesario."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "38": {
+    "cause": "Ransomware afecta disponibilidad; una alerta no sustituye análisis de alcance y preservación de evidencia.",
+    "fix": "Aislar el equipo, preservar evidencia, contener credenciales y recuperar desde respaldos verificados.",
+    "implementation": "Aísla equipos afectados, conserva logs e imágenes según procedimiento, revoca accesos comprometidos, erradica la causa y restaura copias verificadas en aislamiento.",
+    "verify": [
+      "Verificar restauración aislada, integridad y ausencia de actividad anómala.",
+      "Comprueba integridad, disponibilidad y ausencia de eventos anómalos antes de reconectar."
+    ],
+    "reference": "https://www.cisa.gov/stopransomware",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "39": {
+    "cause": "Análisis estático permite identificar propiedades sin ejecutar el archivo.",
+    "fix": "Aislar la muestra inerte, calcular hash y analizar metadatos en entorno dedicado.",
+    "implementation": "Preserva el original, calcula hashes, analiza una copia en entorno dedicado y documenta cadena de custodia. No ejecutes muestras desconocidas.",
+    "verify": [
+      "Confirmar coincidencia de hashes de evidencia y registrar cadena de custodia.",
+      "Recalcula hashes y verifica integridad del original y registro de custodia."
+    ],
+    "reference": "https://www.cisa.gov/stopransomware",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "40": {
+    "cause": "Correlacionar tiempos, identidades y fuentes permite evaluar alcance sin asumir causalidad.",
+    "fix": "Correlacionar por tiempo e identidad, preservar logs, revocar sesión y limitar salida si corresponde.",
+    "implementation": "Centraliza fuentes con hora sincronizada, preserva evidencia, revoca sesiones confirmadas y restringe salidas según impacto.",
+    "verify": [
+      "Confirmar cronología, contención y que no continúan eventos anómalos.",
+      "Verifica cronología, acciones de contención y ausencia de actividad posterior."
+    ],
+    "reference": "https://www.cisa.gov/stopransomware",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "41": {
+    "cause": "Las reglas de negocio y la autorización deben decidirse en el servidor, incluso si la interfaz oculta campos.",
+    "fix": "Recalcular importe desde catálogo del servidor y validar permisos por operación.",
+    "implementation": "Recalcula importes desde catálogo y descuentos aprobados; valida permisos en cada operación, usa registros de auditoría y pruebas de reglas de negocio.",
+    "verify": [
+      "Comprobar que se rechazan importes manipulados y roles sin permiso.",
+      "Prueba cambios de precio y rol y verifica que los pedidos legítimos siguen funcionando."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "42": {
+    "cause": "La respuesta coordinada trata identidad, activo, evidencia y causa raíz.",
+    "fix": "Contener la cuenta y el equipo, preservar evidencia, parchear y verificar antes de recuperar.",
+    "implementation": "Revoca sesiones, aísla el activo, preserva evidencia, aplica parche probado y recupera con monitoreo. Registra responsables y tiempos.",
+    "verify": [
+      "Confirmar credenciales revocadas, versión actualizada y ausencia de conexiones anómalas.",
+      "Confirma revocación, versión corregida y ausencia de conexiones anómalas."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "43": {
+    "cause": "Un firewall aplica reglas por dirección, interfaz, protocolo y puerto; no corrige defectos de la aplicación.",
+    "fix": "Denegar entrada por defecto, permitir HTTPS y restringir SSH a la red administrativa; mantener acceso de recuperación.",
+    "implementation": "En una VM aislada, revisa ufw status verbose, prepara acceso de consola y autoriza únicamente HTTPS y SSH desde la red administrativa definida; usa política de entrada denegada por defecto. No ejecutes cambios en el anfitrión.",
+    "verify": [
+      "Probar conexiones permitidas y denegadas desde los segmentos de prueba.",
+      "Prueba desde segmentos permitidos y denegados, conservando recuperación administrativa."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "44": {
+    "cause": "Windows Firewall separa perfiles y reglas; alcance y origen importan.",
+    "fix": "Restringir RDP al perfil y origen administrativo, conservar firewall habilitado y auditar bloqueos.",
+    "implementation": "En una VM de prueba, abre wf.msc, conserva firewall activo y restringe regla RDP al perfil y a direcciones administrativas autorizadas. Revisa auditoría de bloqueos.",
+    "verify": [
+      "Verificar que RDP no responde desde perfil público y sí desde el origen aprobado.",
+      "Comprueba acceso permitido y denegado por perfil y origen sin perder acceso de administración."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "45": {
+    "cause": "Un WAF inspecciona HTTP y puede reducir exposición, pero no elimina la causa en el código.",
+    "fix": "Aplicar reglas gestionadas, revisar falsos positivos y corregir la vulnerabilidad del backend.",
+    "implementation": "Prueba ModSecurity con OWASP CRS en modo detección, revisa falsos positivos, ajusta reglas y activa bloqueo gradualmente; corrige el backend.",
+    "verify": [
+      "Validar rechazo de la prueba anómala y éxito de solicitudes normales.",
+      "Compara pruebas anómalas y legítimas y verifica registros y corrección del código."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "46": {
+    "cause": "IDS detecta; IPS puede impedir tráfico si está ubicado y configurado adecuadamente.",
+    "fix": "Ajustar reglas con tráfico de referencia, alertar al equipo y activar bloqueo solo tras validar falsos positivos.",
+    "implementation": "Usa reglas mantenidas de Suricata o Snort, calibra con tráfico de referencia y prueba detección antes de activar bloqueo selectivo.",
+    "verify": [
+      "Reproducir un evento sintético y comprobar alerta sin afectar tráfico legítimo.",
+      "Genera eventos benignos de prueba en laboratorio y confirma alertas y continuidad legítima."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "47": {
+    "cause": "La ausencia de telemetría también puede ser una señal de fallo o incidente.",
+    "fix": "Instalar o reparar agente, proteger transporte, sincronizar hora y definir alertas.",
+    "implementation": "Repara o enrola el agente Wazuh en entorno autorizado, protege transporte, sincroniza hora y alerta ante pérdida de contacto.",
+    "verify": [
+      "Generar evento benigno de prueba y confirmar recepción, alerta y hora correcta.",
+      "Genera un evento benigno y verifica recepción, identidad y hora."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "48": {
+    "cause": "El parche debe corresponder a la versión afectada y validarse antes de producción.",
+    "fix": "Verificar aviso y versión, respaldar, probar parche en staging, desplegar y validar; planificar reversión.",
+    "implementation": "Consulta aviso oficial, verifica versión y firma del paquete, respalda, prueba en staging, programa ventana y reversión; usa gestor de paquetes soportado.",
+    "verify": [
+      "Confirmar versión corregida y repetir pruebas funcionales.",
+      "Confirma versión corregida, servicio operativo y pruebas de regresión."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "49": {
+    "cause": "Hardening reduce exposición y privilegios mediante configuraciones seguras.",
+    "fix": "Deshabilitar root remoto, exigir claves según política, cerrar servicios innecesarios y probar acceso alternativo.",
+    "implementation": "En entorno de prueba, configura PermitRootLogin no, acceso mediante claves según política y servicios mínimos. Valida configuración con sshd -t y conserva consola de recuperación antes de recargar.",
+    "verify": [
+      "Confirmar que acceso legítimo funciona y que root remoto y servicios no requeridos están bloqueados.",
+      "Comprueba acceso de usuario autorizado, rechazo de root remoto y reducción de puertos."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "50": {
+    "cause": "Un control del host no puede recuperar ancho de banda ya saturado aguas arriba.",
+    "fix": "Activar mitigación del proveedor/CDN, cuotas por ruta y caché; preparar plan de respuesta.",
+    "implementation": "Coordina protección DDoS del proveedor, caché y límites de aplicación; define umbrales de alerta y plan de respuesta.",
+    "verify": [
+      "Validar métricas de disponibilidad bajo carga sintética acotada.",
+      "Compara disponibilidad en simulación acotada y comprueba que las solicitudes legítimas se mantienen."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "51": {
+    "cause": "TLS protege y autentica solo cuando la cadena, nombre y vigencia se validan.",
+    "fix": "Renovar certificado confiable, instalar cadena completa, comprobar nombre y automatizar renovación.",
+    "implementation": "Renueva con CA confiable, instala cadena completa, verifica nombre y automatiza renovación con alertas; configura HTTPS sin desactivar validación.",
+    "verify": [
+      "Comprobar cadena, nombre, vigencia y redirección HTTPS.",
+      "Comprueba certificado, cadena, redirección HTTPS y rechazo de nombre incorrecto."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "52": {
+    "cause": "Sin integridad y sincronización, la correlación de eventos pierde fiabilidad.",
+    "fix": "Sincronizar NTP, centralizar logs con retención y permisos, y alertar ante interrupciones.",
+    "implementation": "Sincroniza NTP, protege transporte y almacenamiento de logs, establece retención y roles, alerta ante interrupciones.",
+    "verify": [
+      "Correlacionar eventos de prueba y confirmar integridad y retención.",
+      "Correlaciona eventos benignos y revisa integridad, permisos y retención."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "53": {
+    "cause": "Un respaldo debe ser recuperable y resistente a alteración; copiar no equivale a probar recuperación.",
+    "fix": "Aplicar estrategia 3-2-1 con copia aislada o inmutable y pruebas periódicas de restauración.",
+    "implementation": "Aplica estrategia 3-2-1 con copia aislada o inmutable, permisos separados y restauraciones periódicas; define RPO/RTO.",
+    "verify": [
+      "Restaurar en entorno separado y comprobar integridad y tiempos de recuperación.",
+      "Restaura en un entorno separado y comprueba integridad y tiempos de recuperación."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "54": {
+    "cause": "Respuesta a incidentes combina identificación, contención, erradicación, recuperación y aprendizaje.",
+    "fix": "Preservar evidencia, delimitar impacto, contener, erradicar causa y recuperar con seguimiento.",
+    "implementation": "Preserva evidencia, asigna responsables, contiene, corrige causa raíz y recupera de forma controlada; documenta lecciones y acciones.",
+    "verify": [
+      "Documentar cronología, controles aplicados, verificación y acciones posteriores.",
+      "Verifica cronología, cierre de accesos, operación legítima y seguimiento de acciones."
+    ],
+    "reference": "https://www.cisa.gov/cross-sector-cybersecurity-performance-goals",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "01": {
+    "cause": "Conocer el identificador de un objeto no acredita permiso para leerlo.",
+    "fix": "IDOR: verificar autorización de objeto y propiedad en cada consulta; no confiar en identificadores del cliente.",
+    "implementation": "Vincula la búsqueda al usuario autenticado: SELECT id,total FROM recibos WHERE id = ? AND propietario_id = ?; devuelve 404 si no hay coincidencia. No confíes en un propietario enviado por el cliente.",
+    "verify": [
+      "Repetir con documento propio y ajeno: el primero funciona y el segundo devuelve 403 o 404.",
+      "Comprueba que dos usuarios distintos solo pueden leer sus propios recibos."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "02": {
+    "cause": "Los campos readonly son controles de presentación, no garantías de integridad.",
+    "fix": "Obtener precio desde el catálogo en el servidor y recalcular el total; validar cantidad y aplicar reglas de descuentos del servidor.",
+    "implementation": "Lee el precio a partir del SKU en el servidor; valida cantidad entera positiva y límites; calcula el total con unidades monetarias enteras y aplica descuentos autorizados.",
+    "verify": [
+      "Comparar compra válida con precio alterado: el importe se mantiene según catálogo.",
+      "Comprueba pedidos válidos, cantidades negativas y precios aportados por el cliente."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "03": {
+    "cause": "Una cookie modificable por el cliente no constituye una prueba de autorización.",
+    "fix": "Guardar roles en sesión del servidor; usar cookies opacas HttpOnly, SameSite y Secure bajo HTTPS; validar permisos por operación.",
+    "implementation": "Emite un identificador aleatorio opaco, guarda el rol en servidor y aplica controles en cada ruta. Usa HttpOnly, SameSite y Secure bajo HTTPS; rota el identificador al autenticar.",
+    "verify": [
+      "Una cookie de rol modificada no concede acceso; un administrador autorizado sí.",
+      "Repite la petición como visitante y administrador autorizado; modificar una cookie no debe elevar privilegios."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "04": {
+    "cause": "La concatenación mezcla datos externos con instrucciones de base de datos.",
+    "fix": "Parametrizar consultas SQLite con placeholders y verificar contraseñas mediante Argon2id; usar privilegios mínimos y WAF como complemento.",
+    "implementation": "Usa cursor.execute('SELECT password_hash FROM usuarios WHERE nombre = ?', (nombre,)); verifica la contraseña con Argon2id mediante una biblioteca mantenida. Migra hashes antiguos. Usa WAF como capa adicional.",
+    "verify": [
+      "Probar entradas con caracteres especiales y confirmar que no alteran la consulta; acceso válido sigue operativo.",
+      "Prueba credenciales válidas, inválidas y nombres con caracteres especiales; no debe cambiar la estructura de la consulta."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "05": {
+    "cause": "Una ruta no es una autorización: su interpretación puede superar el directorio previsto.",
+    "fix": "Usar lista permitida de documentos o resolver ruta canónica dentro de la carpeta autorizada, sin seguir enlaces que escapen; limitar permisos.",
+    "implementation": "Prefiere un mapa de identificadores a archivos permitidos; si aceptas rutas, resuelve su forma canónica dentro de la raíz autorizada y evita enlaces que escapen. Ejecuta con permisos de lectura mínimos.",
+    "verify": [
+      "Solicitar un documento permitido y una ruta fuera de carpeta: solo se entrega el permitido.",
+      "Verifica documentos permitidos, rutas fuera de raíz y enlaces simbólicos en un entorno de prueba."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "06": {
+    "cause": "Una cabecera HTTP aportada por el cliente no demuestra el origen de red.",
+    "fix": "Esta es suplantación de cabecera HTTP, no de paquetes IP: eliminar cabeceras entrantes no confiables en el proxy y aceptar datos solo de proxies autorizados; exigir autorización.",
+    "implementation": "Configura el proxy para reemplazar cabeceras de origen de clientes; acepta esas cabeceras solo desde proxies confiables y exige autorización independiente de la IP.",
+    "verify": [
+      "Cabeceras aportadas por el cliente no cambian privilegios y la ruta interna exige permisos.",
+      "Comprueba que las cabeceras de clientes no cambian permisos y que un proxy autorizado conserva la información válida."
+    ],
+    "reference": "https://www.cisa.gov/topics/cyber-threats-and-advisories",
+    "referenceLabel": "CISA · orientación defensiva"
+  },
+  "07": {
+    "cause": "La autorización debe acompañar al recurso y a la acción, no únicamente a una ruta GET.",
+    "fix": "Centralizar controles de autorización para todos los métodos HTTP y rechazar métodos no implementados.",
+    "implementation": "Centraliza la autorización en middleware y aplica permisos por operación; devuelve 405 para métodos no admitidos. Añade pruebas de matriz rol × método.",
+    "verify": [
+      "Probar GET y POST sin permisos: ambos se rechazan.",
+      "Verifica que visitantes no pueden exportar con ningún método y que el rol autorizado conserva el acceso permitido."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "08": {
+    "cause": "Asignar automáticamente atributos enviados por un cliente puede alterar estados internos.",
+    "fix": "Definir un esquema de campos modificables y permitir solo comentario; cambiar estado mediante operación autorizada y auditada.",
+    "implementation": "Define un esquema PATCH que solo acepte comentario; rechaza propiedades desconocidas. Gestiona aprobación mediante operación separada, autorización, transición válida y auditoría.",
+    "verify": [
+      "Enviar campos no permitidos y comprobar rechazo o ausencia de cambios en estado.",
+      "Prueba cambios de comentario y solicitudes que incluyan propiedades internas; los estados reservados deben permanecer intactos."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  },
+  "09": {
+    "cause": "La firma autentica las declaraciones del token; decodificar no equivale a verificar.",
+    "fix": "Verificar JWT mediante biblioteca mantenida, algoritmo permitido fijo, firma, expiración, emisor y audiencia; rechazar tokens sin firma.",
+    "implementation": "Usa una biblioteca JWT mantenida con lista fija de algoritmos, clave confiable, firma obligatoria y validación de exp, iss y aud según el servicio. Rota claves si se exponen.",
+    "verify": [
+      "Token válido se acepta con su rol; firma inválida o ausente se rechaza.",
+      "Verifica tokens válidos, expirados, manipulados y sin firma; solo deben aceptarse los autorizados."
+    ],
+    "reference": "https://cheatsheetseries.owasp.org/",
+    "referenceLabel": "OWASP Cheat Sheet Series"
+  }
+}

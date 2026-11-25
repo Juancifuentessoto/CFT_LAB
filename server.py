@@ -25,10 +25,40 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent
 HOST = os.getenv('LAB_HOST', '127.0.0.1')
 PORT = int(os.getenv('LAB_PORT', '8000'))
-LEVELS = tuple(f'{number:02d}' for number in range(1, 11))
+LEVELS = tuple(f'{number:02d}' for number in range(1, 55))
+RANKS = (
+    (0, 'Explorador'),
+    (5, 'Operador'),
+    (15, 'Analista'),
+    (27, 'Especialista'),
+    (42, 'Arquitecto de seguridad'),
+    (54, 'Guardián de Cyber City'),
+)
+
+def rank_progress(solved):
+    completed = sum(solved.get(level) is True for level in LEVELS)
+    current_threshold = max(n for n, _ in RANKS if completed >= n)
+    ranks = [
+        {'threshold': n, 'name': name, 'unlocked': completed >= n, 'current': n == current_threshold}
+        for n, name in RANKS
+    ]
+    return {
+        'completed': completed,
+        'current': next(r for r in ranks if r['current']),
+        'next': next((r for r in ranks if not r['unlocked']), None),
+        'ranks': ranks,
+    }
+
+# Informes privados: no se sirven como recursos estáticos.
+REMEDIATION = json.loads((ROOT / 'remediation.json').read_text(encoding='utf-8'))
+if set(REMEDIATION) != set(LEVELS):
+    raise RuntimeError('Catálogo de remediación incompleto')
+
 # Las flags son aleatorias por arranque: no se pueden leer del código fuente.
 FLAGS = {level: f'FLAG{{LAB_{level}_{secrets.token_hex(6).upper()}}}' for level in LEVELS}
 SIGNING_KEY = secrets.token_bytes(32)
+# Respuestas de ejercicios de decisión; no se incluyen en app.js.
+SCENARIO_ANSWERS = {"11":0,"12":1,"13":2,"14":0,"15":1,"16":2,"17":0,"18":1,"19":2,"20":0,"21":1,"22":2,"23":0,"24":1,"25":2,"26":0,"27":1,"28":2,"29":0,"30":1,"31":2,"32":0,"33":1,"34":2,"35":0,"36":1,"37":2,"38":0,"39":1,"40":2,"41":0,"42":1,"43":2,"44":0,"45":1,"46":2,"47":0,"48":1,"49":2,"50":0,"51":1,"52":2,"53":0,"54":1}
 
 INVOICES = {
     '4101': {'id': 4101, 'owner': 'visitante', 'title': 'Recibo de laboratorio', 'total': 12990, 'detail': 'Documento público de demostración.'},
@@ -42,12 +72,13 @@ VIRTUAL_FILES = {
 }
 
 sessions: dict[str, dict] = {}
+student_tokens: dict[str, str] = {}
 requests_db: dict[str, dict] = {}
 lock = threading.RLock()
 
 
 def new_session():
-    return {'username': None, 'role': 'guest', 'solved': {level: False for level in LEVELS}}
+    return {'username': None, 'role': 'guest', 'student': None, 'solved': {level: False for level in LEVELS}}
 
 
 def b64url(data: bytes) -> str:
@@ -125,6 +156,9 @@ class LabHandler(BaseHTTPRequestHandler):
                 self._set_cookie = None
             return sid, sessions[sid]
 
+    def _use_session(self, sid):
+        self._set_cookie = f'lab_session={sid}; HttpOnly; SameSite=Lax; Path=/'
+
     def _headers(self, status=200, content_type='application/json; charset=utf-8', length=0):
         self.send_response(status)
         self.send_header('Content-Type', content_type)
@@ -161,18 +195,51 @@ class LabHandler(BaseHTTPRequestHandler):
         path = url.path
         query = parse_qs(url.query)
 
-        if path in ('/', '/index.html', '/app.js'):
-            file = 'app.js' if path == '/app.js' else 'index.html'
-            content = (ROOT / file).read_bytes()
-            mime = 'application/javascript' if file == 'app.js' else 'text/html'
-            self._headers(200, f'{mime}; charset=utf-8', len(content))
+        # Lista cerrada de recursos estáticos: nunca servir rutas arbitrarias.
+        static_files = {
+            '/': ('index.html', 'text/html'),
+            '/index.html': ('index.html', 'text/html'),
+            '/app.js': ('app.js', 'application/javascript'),
+            '/city.js': ('city.js', 'application/javascript'),
+            '/city.css': ('city.css', 'text/css'),
+            '/vendor/three.module.js': ('vendor/three.module.js', 'application/javascript'),
+            '/vendor/d3.min.js': ('vendor/d3.min.js', 'application/javascript'),
+            '/vendor/sora-700.woff2': ('vendor/sora-700.woff2', 'font/woff2'),
+            '/vendor/dm-sans-400.woff2': ('vendor/dm-sans-400.woff2', 'font/woff2'),
+            '/vendor/dm-sans-700.woff2': ('vendor/dm-sans-700.woff2', 'font/woff2'),
+            '/vendor/ibm-plex-mono-400.woff2': ('vendor/ibm-plex-mono-400.woff2', 'font/woff2'),
+        }
+        if path in static_files:
+            file, mime = static_files[path]
+            try:
+                content = (ROOT / file).read_bytes()
+            except FileNotFoundError:
+                self._json({'error': 'Recurso opcional no instalado. Ejecuta npm install y npm run vendor.'}, 404)
+                return
+            self._headers(200, mime if mime.startswith('font/') else f'{mime}; charset=utf-8', len(content))
             self.wfile.write(content)
             return
         if path == '/health':
             self._json({'status': 'ok', 'challenges': len(LEVELS)})
             return
         if path == '/api/state':
-            self._json({'player': 'visitante', 'medium_user': session['username'], 'medium_role': session['role'], 'solved': session['solved']})
+            with lock:
+                solved = dict(session['solved'])
+                profile = dict(session['student']) if session['student'] else None
+            self._json({'player': 'visitante', 'student': profile, 'medium_user': session['username'], 'medium_role': session['role'], 'solved': solved, 'rank_progress': rank_progress(solved)})
+            return
+
+        if path == '/api/remediation':
+            level = query.get('level', [''])[0]
+            if level not in REMEDIATION:
+                self._json({'error': 'Misión desconocida'}, 404)
+                return
+            with lock:
+                allowed = bool(session['student']) and session['solved'].get(level) is True
+            if not allowed:
+                self._json({'error': 'Valida primero la flag de esta misión con tu perfil.'}, 403)
+                return
+            self._json(REMEDIATION[level])
             return
 
         # 01: IDOR (no comprueba propietario del recurso).
@@ -290,6 +357,68 @@ class LabHandler(BaseHTTPRequestHandler):
             self._json({'error': 'Envía un objeto JSON válido (máximo 8 KiB)'}, 400)
             return
 
+        if path == '/api/student/register':
+            name = body.get('name')
+            if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100 or any(ord(c) < 32 for c in name):
+                self._json({'error': 'Introduce un nombre válido de 1 a 100 caracteres.'}, 400)
+                return
+            with lock:
+                new_sid = secrets.token_urlsafe(24)
+                token = secrets.token_urlsafe(24)
+                record = new_session()
+                record['student'] = {'name': name.strip(), 'token': token, 'avatar': 'explorer'}
+                sessions[new_sid] = record
+                student_tokens[token] = new_sid
+                self._use_session(new_sid)
+            self._json({'message': 'Alumno registrado.'}, 201)
+            return
+
+        if path == '/api/student/resume':
+            token = body.get('token')
+            if not isinstance(token, str) or not token or len(token) > 100:
+                self._json({'error': 'Introduce un token válido.'}, 400)
+                return
+            with lock:
+                target = student_tokens.get(token.strip())
+                if not target or target not in sessions:
+                    self._json({'error': 'Token no encontrado o caducado al reiniciar el laboratorio.'}, 404)
+                    return
+                self._use_session(target)
+            self._json({'message': 'Sesión recuperada.'})
+            return
+
+        if path == '/api/student/avatar':
+            avatar = body.get('avatar')
+            if not session['student']:
+                self._json({'error': 'Identifícate primero.'}, 401)
+                return
+            if not isinstance(avatar, str) or avatar not in {'explorer', 'shield', 'analyst', 'engineer', 'pilot', 'robot'}:
+                self._json({'error': 'Avatar inválido.'}, 400)
+                return
+            with lock:
+                session['student']['avatar'] = avatar
+            self._json({'avatar': avatar})
+            return
+
+        if path == '/api/student/logout':
+            with lock:
+                new_sid = secrets.token_urlsafe(24)
+                sessions[new_sid] = new_session()
+                self._use_session(new_sid)
+            self._json({'message': 'Sesión cerrada. Puedes retomarla con tu token.'})
+            return
+
+        if path == '/api/scenario':
+            level, choice = body.get('level'), body.get('choice')
+            if not isinstance(level, str) or level not in SCENARIO_ANSWERS or type(choice) is not int or not 0 <= choice <= 2:
+                self._json({'error': 'Escenario u opción inválida'}, 400)
+                return
+            if choice == SCENARIO_ANSWERS[level]:
+                self._json({'correct': True, 'message': 'Decisión correcta. Copia la flag al validador.', 'flag': FLAGS[level]})
+            else:
+                self._json({'correct': False, 'message': 'Revisa la evidencia y las pistas de la misión.'})
+            return
+
         if path == '/api/verify':
             level, candidate = body.get('level', ''), body.get('flag', '')
             if not isinstance(level, str) or level not in FLAGS or not isinstance(candidate, str):
@@ -304,7 +433,9 @@ class LabHandler(BaseHTTPRequestHandler):
 
         if path == '/api/reset':
             with lock:
-                sessions[sid] = new_session()
+                replacement = new_session()
+                replacement['student'] = session['student']
+                sessions[sid] = replacement
                 for req_id in [k for k, request in requests_db.items() if request['owner_sid'] == sid]:
                     del requests_db[req_id]
             self._json({'message': 'Progreso y solicitudes reiniciados para esta sesión'})
@@ -418,7 +549,7 @@ class LabHandler(BaseHTTPRequestHandler):
 
 def main():
     httpd = ThreadingHTTPServer((HOST, PORT), LabHandler)
-    print(f'Burp Suite CTF — http://{HOST}:{PORT} (10 retos)', flush=True)
+    print(f'Burp Suite CTF — http://{HOST}:{PORT} (54 laboratorios: 10 HTTP y 44 simulaciones)', flush=True)
     print('PELIGRO: servidor intencionalmente vulnerable; solo para localhost.', flush=True)
     try:
         httpd.serve_forever()
